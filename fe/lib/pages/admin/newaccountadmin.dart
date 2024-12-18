@@ -18,6 +18,7 @@ class _NewAccAdminState extends State<NewAccAdmin> {
   String username = '';
   String password = '';
   String role = 'admin';
+  String status = '';
 
   // Member fields
   String name = '';
@@ -43,14 +44,8 @@ class _NewAccAdminState extends State<NewAccAdmin> {
         headers: {'Content-Type': 'application/json'},
       );
 
-      // Debug: Print the raw response body
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
-        // Debug: Print the parsed data
-        print('Parsed data: $data');
 
         if (data['success']) {
           setState(() {
@@ -67,9 +62,6 @@ class _NewAccAdminState extends State<NewAccAdmin> {
         );
       }
     } catch (error) {
-      // Debug: Print the error
-      print('Error fetching positions: $error');
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('An error occurred while fetching positions.')),
       );
@@ -89,6 +81,7 @@ class _NewAccAdminState extends State<NewAccAdmin> {
           'username': username,
           'password': password,
           'role': role,
+          'status': status,
         }),
       );
 
@@ -120,31 +113,24 @@ class _NewAccAdminState extends State<NewAccAdmin> {
       if (memberResponse.statusCode == 201) {
         final memberData = jsonDecode(memberResponse.body);
 
-        // Show success notification
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(memberData['message'] ?? 'Member created successfully!')),
         );
 
-        // Extract the member ID from the response (assuming it's included in the response)
-        final memberId = memberData['member_id'].toString(); // Convert to String
+        final memberId = memberData['member_id'].toString();
 
-        // Delay navigation for a brief moment to ensure the SnackBar is shown
         Future.delayed(Duration(seconds: 2), () {
-          // Navigate to AddImageAdmin page after successful creation, passing member_id
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => AddImage(memberId: memberId)),
           );
-
         });
       } else {
-        // Handle failure
         final error = jsonDecode(memberResponse.body);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(error['message'] ?? 'Failed to create member')),
         );
       }
-
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('An error occurred. Please try again.')),
@@ -171,6 +157,7 @@ class _NewAccAdminState extends State<NewAccAdmin> {
               SizedBox(height: 20),
               TextFormField(
                 decoration: InputDecoration(labelText: 'Username'),
+                onChanged: (value) => username = value, // Update variable directly
                 onSaved: (value) => username = value!,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -185,6 +172,7 @@ class _NewAccAdminState extends State<NewAccAdmin> {
               TextFormField(
                 decoration: InputDecoration(labelText: 'Password'),
                 obscureText: true,
+                onChanged: (value) => password = value, // Update variable directly
                 onSaved: (value) => password = value!,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -197,9 +185,20 @@ class _NewAccAdminState extends State<NewAccAdmin> {
                 },
               ),
               DropdownButtonFormField<String>(
+                decoration: InputDecoration(labelText: 'Status'),
+                value: status.isEmpty ? null : status,
+                items: ['able', 'disable']
+                    .map((status) => DropdownMenuItem(
+                  value: status,
+                  child: Text(status),
+                ))
+                    .toList(),
+                onChanged: (value) => setState(() => status = value!),
+              ),
+              DropdownButtonFormField<String>(
                 decoration: InputDecoration(labelText: 'Role'),
                 value: role,
-                items: ['admin', 'user']
+                items: ['admin', 'manager', 'staff']
                     .map((role) => DropdownMenuItem(
                   value: role,
                   child: Text(role),
@@ -214,6 +213,7 @@ class _NewAccAdminState extends State<NewAccAdmin> {
               ),
               TextFormField(
                 decoration: InputDecoration(labelText: 'Name'),
+                onChanged: (value) => name = value, // Update variable directly
                 onSaved: (value) => name = value!,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -241,11 +241,13 @@ class _NewAccAdminState extends State<NewAccAdmin> {
               ),
               TextFormField(
                 decoration: InputDecoration(labelText: 'Address'),
+                onChanged: (value) => address = value, // Update variable directly
                 onSaved: (value) => address = value!,
               ),
               TextFormField(
                 decoration: InputDecoration(labelText: 'Phone Number'),
-                keyboardType: TextInputType.number, // Opens numeric keyboard
+                keyboardType: TextInputType.number,
+                onChanged: (value) => phoneNumber = value, // Update variable directly
                 onSaved: (value) => phoneNumber = value!,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -259,6 +261,7 @@ class _NewAccAdminState extends State<NewAccAdmin> {
               ),
               TextFormField(
                 decoration: InputDecoration(labelText: 'Email'),
+                onChanged: (value) => email = value, // Update variable directly
                 onSaved: (value) => email = value!,
                 validator: (value) {
                   if (value == null || value.isEmpty) {

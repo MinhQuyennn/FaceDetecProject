@@ -137,35 +137,37 @@ const getImageByID = async (req, res) => {
 
   try {
     // Query to get face image and vector by member_id
-    const query = 'SELECT face_image, image_vector FROM tbl_register_faces WHERE member_id = ?';
+    const query = 'SELECT id, face_image, image_vector FROM tbl_register_faces WHERE member_id = ?';
     const [results] = await db.promise().query(query, [memberId]);
 
     if (results.length === 0) {
       return res.status(404).json({ error: 'No data found for the given member_id' });
     }
 
-    const faceImage = results[0].face_image; // Just the URL
-    const imageVector = results[0].image_vector;
-
-    // Parse image vector safely
-    let parsedVector;
-    try {
-      parsedVector = Array.isArray(imageVector) ? imageVector : JSON.parse(imageVector);
-    } catch (error) {
-      console.error('Error parsing image_vector:', error);
-      return res.status(500).json({ error: 'Failed to process image_vector' });
-    }
-
-    // Respond with the face image URL and raw image vector
-    res.status(200).json({
-      face_image_url: faceImage,
-      image_vector: parsedVector, // Send as JSON array
+    // Prepare response data by mapping over all rows
+    const response = results.map(row => {
+      let parsedVector;
+      try {
+        parsedVector = Array.isArray(row.image_vector) ? row.image_vector : JSON.parse(row.image_vector);
+      } catch (error) {
+        console.error('Error parsing image_vector:', error);
+        throw new Error('Failed to process image_vector');
+      }
+      return {
+        id: row.id,
+        face_image_url: row.face_image,
+        image_vector: parsedVector,
+      };
     });
+
+    // Respond with all rows data
+    res.status(200).json(response);
   } catch (err) {
     console.error('Error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 
  

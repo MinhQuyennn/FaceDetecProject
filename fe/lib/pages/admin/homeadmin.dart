@@ -26,7 +26,7 @@ class _HomepageAdState extends State<HomepageAd> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(
-              'Hi Huyen',
+              'Hi Admin',
               style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
             ),
             Text(

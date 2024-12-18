@@ -1,12 +1,14 @@
 const express = require("express");
 
 
-
 const accountRoutes = require("./routes/accounts");
 const authRoutes = require("./routes/auth");
 const positionRoutes = require("./routes/position");
 const memberRoutes = require("./routes/member");
-const regisImageRoutes = require("./routes/regisImage"); // Ensure this file exists
+const regisImageRoutes = require("./routes/regisImage"); 
+const historiesRoutes = require("./routes/histories"); 
+
+
 
 require("dotenv").config();
 
@@ -19,7 +21,7 @@ const db = require("./config/database");
 const configViewEngine = require("./config/viewEngine");
 const app = express();
 
-const port = process.env.PORT;
+const port = process.env.PORT || 37320;
 
 app.use(cors());
 configViewEngine(app);
@@ -36,9 +38,11 @@ app.use("/", authRoutes);
 app.use("/", positionRoutes);
 app.use("/", memberRoutes);
 app.use("/", regisImageRoutes); // This must point to the correct route file
+app.use("/", historiesRoutes); // This must point to the correct route file
 
 // Middleware for serving static files
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
+app.use("/histories", express.static(path.join(__dirname, "public//histories")));
 
 // Catch-all middleware for unknown routes
 app.use((req, res) => {
