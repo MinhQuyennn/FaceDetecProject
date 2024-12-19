@@ -14,19 +14,17 @@ class NewAccAdmin extends StatefulWidget {
 class _NewAccAdminState extends State<NewAccAdmin> {
   final _formKey = GlobalKey<FormState>();
 
-  // Account fields
-  String username = '';
-  String password = '';
+  // TextEditingControllers for form fields
+  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController addressController = TextEditingController();
+  final TextEditingController phoneNumberController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+
   String role = 'admin';
   String status = '';
-
-  // Member fields
-  String name = '';
-  String positionId = ''; // This will now be set using the dropdown
-  String address = '';
-  String phoneNumber = '';
-  String email = '';
-
+  String positionId = '';
   bool isLoading = false;
   List<Map<String, dynamic>> positions = []; // To store positions from the API
 
@@ -34,6 +32,18 @@ class _NewAccAdminState extends State<NewAccAdmin> {
   void initState() {
     super.initState();
     fetchPositions();
+  }
+
+  @override
+  void dispose() {
+    // Dispose controllers when not needed
+    usernameController.dispose();
+    passwordController.dispose();
+    nameController.dispose();
+    addressController.dispose();
+    phoneNumberController.dispose();
+    emailController.dispose();
+    super.dispose();
   }
 
   // Fetch positions from API
@@ -67,19 +77,16 @@ class _NewAccAdminState extends State<NewAccAdmin> {
       );
     }
   }
-
-  // Create account and member API calls
   Future<void> createAccountAndMember() async {
     setState(() => isLoading = true);
 
     try {
-      // First API call to create the account
       final accountResponse = await http.post(
         Uri.parse('http://10.0.2.2:8081/signUp'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'username': username,
-          'password': password,
+          'username': usernameController.text,
+          'password': passwordController.text,
           'role': role,
           'status': status,
         }),
@@ -94,19 +101,18 @@ class _NewAccAdminState extends State<NewAccAdmin> {
       }
 
       final accountData = jsonDecode(accountResponse.body);
-      final accountId = accountData['username']; // Ensure API returns the username or account_id
+      final accountId = accountData['username'];
 
-      // Second API call to create the member
       final memberResponse = await http.post(
         Uri.parse('http://10.0.2.2:8081/createmembers'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'account_id': accountId,
-          'name': name,
+          'name': nameController.text,
           'position_id': positionId,
-          'address': address,
-          'phone_number': phoneNumber,
-          'email': email,
+          'address': addressController.text,
+          'phone_number': phoneNumberController.text,
+          'email': emailController.text,
         }),
       );
 
@@ -150,15 +156,12 @@ class _NewAccAdminState extends State<NewAccAdmin> {
           key: _formKey,
           child: ListView(
             children: [
-              Text(
-                'Account Information',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
+              Text('Account Information',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               SizedBox(height: 20),
               TextFormField(
+                controller: usernameController, // Use controller
                 decoration: InputDecoration(labelText: 'Username'),
-                onChanged: (value) => username = value, // Update variable directly
-                onSaved: (value) => username = value!,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Enter a username';
@@ -170,10 +173,9 @@ class _NewAccAdminState extends State<NewAccAdmin> {
                 },
               ),
               TextFormField(
+                controller: passwordController, // Use controller
                 decoration: InputDecoration(labelText: 'Password'),
                 obscureText: true,
-                onChanged: (value) => password = value, // Update variable directly
-                onSaved: (value) => password = value!,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Enter a password';
@@ -207,14 +209,11 @@ class _NewAccAdminState extends State<NewAccAdmin> {
                 onChanged: (value) => setState(() => role = value!),
               ),
               SizedBox(height: 20),
-              Text(
-                'Member Information',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
+              Text('Member Information',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               TextFormField(
+                controller: nameController, // Use controller
                 decoration: InputDecoration(labelText: 'Name'),
-                onChanged: (value) => name = value, // Update variable directly
-                onSaved: (value) => name = value!,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Enter a name';
@@ -240,15 +239,13 @@ class _NewAccAdminState extends State<NewAccAdmin> {
                 },
               ),
               TextFormField(
+                controller: addressController, // Use controller
                 decoration: InputDecoration(labelText: 'Address'),
-                onChanged: (value) => address = value, // Update variable directly
-                onSaved: (value) => address = value!,
               ),
               TextFormField(
+                controller: phoneNumberController, // Use controller
                 decoration: InputDecoration(labelText: 'Phone Number'),
                 keyboardType: TextInputType.number,
-                onChanged: (value) => phoneNumber = value, // Update variable directly
-                onSaved: (value) => phoneNumber = value!,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Enter a phone number';
@@ -260,9 +257,8 @@ class _NewAccAdminState extends State<NewAccAdmin> {
                 },
               ),
               TextFormField(
+                controller: emailController, // Use controller
                 decoration: InputDecoration(labelText: 'Email'),
-                onChanged: (value) => email = value, // Update variable directly
-                onSaved: (value) => email = value!,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Enter an email address';
@@ -276,7 +272,6 @@ class _NewAccAdminState extends State<NewAccAdmin> {
                     ? null
                     : () {
                   if (_formKey.currentState!.validate()) {
-                    _formKey.currentState!.save();
                     createAccountAndMember();
                   }
                 },
