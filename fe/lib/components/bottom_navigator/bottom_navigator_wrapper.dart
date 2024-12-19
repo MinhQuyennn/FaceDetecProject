@@ -3,7 +3,7 @@ import 'package:fe/pages/admin/manageaccountadmin.dart';
 import '../../pages/admin/homeadmin.dart';
 import '../../pages/admin/historyadmin.dart';
 import 'package:fe/constants/colors.dart';
-
+import '../../pages/admin/profileadmin.dart';
 class BottomNavigationBarWrapper extends StatelessWidget {
   final int selectedIndex;
   final void Function(int) onItemTapped; // Explicitly specify the type
@@ -36,6 +36,10 @@ class BottomNavigationBarWrapper extends StatelessWidget {
             label: 'Accounts',
             icon: Icon(Icons.supervised_user_circle),
           ),
+          BottomNavigationBarItem(
+            label: 'Profile',
+            icon: Icon(Icons.person),
+          ),
         ],
       ),
     );
@@ -49,6 +53,8 @@ class BottomNavigationBarWrapper extends StatelessWidget {
         return const HistoryAdmin();
       case 2:
         return const ManageAccAdmin();
+      case 3:
+        return const viewProfileAd();
       default:
         return Container();
     }

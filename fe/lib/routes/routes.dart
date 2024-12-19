@@ -8,7 +8,7 @@ import 'package:fe/pages/admin/newaccountadmin.dart';
 import 'package:fe/routes/accountadmin_route.dart';
 import 'package:fe/routes/historyadmin_route.dart';
 import 'package:fe/routes/homeadmin_route.dart';
-
+import 'package:fe/routes/profileadmin_router.dart';
 
 
 
@@ -18,5 +18,6 @@ final Map<String, WidgetBuilder> routes = {
   ...homeRoutesAdmin,
   ...historyRoutesAdmin,
   ...accountRoutesAdmin,
+  ...profileRoutesAdmin,
   Login.routeName: (context) =>   const Login(),
 };

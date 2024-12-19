@@ -31,6 +31,8 @@ class _LoginScreenState extends State<Login> {
   void _checkAutoLogin() async {
     final String? username = await _storage.read(key: "KEY_USERNAME");
     final String? password = await _storage.read(key: "KEY_PASSWORD");
+    debugPrint('Auto-login username: $username');
+    debugPrint('Auto-login password: $password');
 
     if (username != null && password != null) {
       _emailController.text = username;
@@ -46,33 +48,43 @@ class _LoginScreenState extends State<Login> {
 
     try {
       final response = await http.post(
-        Uri.parse('$pathURLL/login'), // Connect to local server
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'username': _emailController.text,
-          'password': _passwordController.text,
-        }),
+        Uri.parse('$pathURLL/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'username': _emailController.text, 'password': _passwordController.text}),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final String token = data['token'];
         final String userRole = data['role'];
-        final String accountId = data['id'].toString();
+        final String username = data['username'].toString();
 
+        // Store data in secure storage
         await _storage.write(key: 'KEY_USERNAME', value: _emailController.text);
-        await _storage.write(
-            key: 'KEY_PASSWORD', value: _passwordController.text);
-        await _storage.write(key: 'accountId', value: accountId);
+        await _storage.write(key: 'KEY_PASSWORD', value: _passwordController.text);
+        await _storage.write(key: 'username', value: username);
         await _storage.write(key: 'currentRole', value: userRole);
+        await _storage.write(key: 'token-user', value: token);  // If user is a visitor
+        await _storage.write(key: 'token-admin', value: token); // If user is an admin
 
+        // Check what is stored
+        String? storedUsername = await _storage.read(key: 'KEY_USERNAME');
+        String? storedPassword = await _storage.read(key: 'KEY_PASSWORD');
+        String? storedRole = await _storage.read(key: 'currentRole');
+        String? storedTokenUser = await _storage.read(key: 'token-user');
+        String? storedTokenAdmin = await _storage.read(key: 'token-admin');
+
+        // Print the values to debug
+        print('Stored Username: $storedUsername');
+        print('Stored Password: $storedPassword');
+        print('Stored Role: $storedRole');
+        print('Stored Token User: $storedTokenUser');
+        print('Stored Token Admin: $storedTokenAdmin');
+
+        // Check user role and navigate
         if (userRole == 'visitor') {
-          await _storage.write(key: 'token-user', value: token);
           Navigator.pushNamed(context, Homepage.routeName);
         } else if (userRole == 'admin') {
-          await _storage.write(key: 'token-admin', value: token);
           Navigator.pushNamed(context, HomepageAd.routeName);
         }
       } else {
@@ -87,6 +99,8 @@ class _LoginScreenState extends State<Login> {
       });
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {

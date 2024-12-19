@@ -22,6 +22,20 @@ const getAllInforAcc = async (req, res) => {
     });
   };
 
+  const getAccountById = async (req, res) => {
+    const accountId = req.params.account_id; // Get account_id from request parameters
+    const sql = "SELECT a.username, a.role, a.status, m.id, m.name AS member_name, m.address, m.phone_number, m.email, p.name AS position_name FROM tbl_account a JOIN tbl_member m ON a.username = m.account_id JOIN tbl_position p ON m.position_id = p.id WHERE a.username = ?;";
+
+    db.query(sql, [accountId], (err, result) => {
+        if (err) {
+            return res.status(500).json({ Error: "Error fetching account" });
+        }
+        if (result.length === 0) {
+            return res.status(404).json({ Error: "Account not found" });
+        }
+        return res.status(200).json({ Status: "Success", accountInfo: result[0] });
+    });
+};
 
 
   const updateaccountusername = async (req, res) => {
@@ -150,5 +164,6 @@ const getAccByFilter = async (req, res) => {
 module.exports = {
     getAccount,
     getAllInforAcc,
-    updateaccountusername
+    updateaccountusername,
+    getAccountById
 };

@@ -12,6 +12,9 @@ final Map<String, WidgetBuilder> accountRoutesAdmin = {
       case 2:
         Navigator.pushNamed(context, '/account_admin');
         break;
+      case 3:
+        Navigator.pushNamed(context, '/viewprofile_admin');
+        break;
     }
   }),
 };
