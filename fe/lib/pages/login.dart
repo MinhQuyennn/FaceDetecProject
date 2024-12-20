@@ -6,6 +6,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import '../pages/admin/homeadmin.dart';
 import '../pages/staff/homeestaff.dart';
 import 'package:fe/constants/colors.dart';
+import '../pages/manager/homemanager.dart';
 
 class Login extends StatefulWidget {
   const Login({Key? key}) : super(key: key);
@@ -77,7 +78,11 @@ class _LoginScreenState extends State<Login> {
         } else if (userRole == 'admin') {
           print('Navigating to admin homepage');
           await _storage.write(key: 'token-admin', value: token);
-          Navigator.pushReplacementNamed(context, Homepagestaff.routeName);
+          Navigator.pushReplacementNamed(context, HomepageAd.routeName);
+        } else if (userRole == 'manager') {
+          print('Navigating to manager homepage');
+          await _storage.write(key: 'token-manager', value: token);
+          Navigator.pushReplacementNamed(context, HomepageManager.routeName);
         } else {
           print('Invalid user role: $userRole');
           Fluttertoast.showToast(msg: 'Invalid user role');
