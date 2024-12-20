@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import '../components/bottom_navigator/bottom_navigator_wrapper.dart';
+import '../../components/bottom_navigator/bottom_navigator_wrapper.dart';
 final Map<String, WidgetBuilder> historyRoutesAdmin = {
   '/history_admin': (context) => BottomNavigationBarWrapper(selectedIndex: 1, onItemTapped: (index) {
     switch (index) {

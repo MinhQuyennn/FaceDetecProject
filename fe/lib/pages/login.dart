@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../pages/admin/homeadmin.dart';
-import './employee/homeemployee.dart';
+import '../pages/staff/homeestaff.dart';
 import 'package:fe/constants/colors.dart';
 
 class Login extends StatefulWidget {
@@ -50,7 +50,10 @@ class _LoginScreenState extends State<Login> {
       final response = await http.post(
         Uri.parse('$pathURLL/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'username': _emailController.text, 'password': _passwordController.text}),
+        body: jsonEncode({
+          'username': _emailController.text,
+          'password': _passwordController.text
+        }),
       );
 
       if (response.statusCode == 200) {
@@ -61,34 +64,24 @@ class _LoginScreenState extends State<Login> {
 
         // Store data in secure storage
         await _storage.write(key: 'KEY_USERNAME', value: _emailController.text);
-        await _storage.write(key: 'KEY_PASSWORD', value: _passwordController.text);
+        await _storage.write(
+            key: 'KEY_PASSWORD', value: _passwordController.text);
         await _storage.write(key: 'username', value: username);
-        await _storage.write(key: 'currentRole', value: userRole);
-        await _storage.write(key: 'token-user', value: token);  // If user is a visitor
-        await _storage.write(key: 'token-admin', value: token); // If user is an admin
+        await _storage.write(
+            key: 'currentRole', value: userRole); // If user is an admin
 
-        // Check what is stored
-        String? storedUsername = await _storage.read(key: 'KEY_USERNAME');
-        String? storedPassword = await _storage.read(key: 'KEY_PASSWORD');
-        String? storedRole = await _storage.read(key: 'currentRole');
-        String? storedTokenUser = await _storage.read(key: 'token-user');
-        String? storedTokenAdmin = await _storage.read(key: 'token-admin');
-
-        // Print the values to debug
-        print('Stored Username: $storedUsername');
-        print('Stored Password: $storedPassword');
-        print('Stored Role: $storedRole');
-        print('Stored Token User: $storedTokenUser');
-        print('Stored Token Admin: $storedTokenAdmin');
-
-        // Check user role and navigate
-        if (userRole == 'visitor') {
-          Navigator.pushNamed(context, Homepage.routeName);
+        if (userRole == 'staff') {
+          print('Navigating to staff homepage');
+          await _storage.write(key: 'token-staff', value: token);
+          Navigator.pushReplacementNamed(context, Homepagestaff.routeName);
         } else if (userRole == 'admin') {
-          Navigator.pushNamed(context, HomepageAd.routeName);
+          print('Navigating to admin homepage');
+          await _storage.write(key: 'token-admin', value: token);
+          Navigator.pushReplacementNamed(context, Homepagestaff.routeName);
+        } else {
+          print('Invalid user role: $userRole');
+          Fluttertoast.showToast(msg: 'Invalid user role');
         }
-      } else {
-        Fluttertoast.showToast(msg: 'Login failed: ${response.body}');
       }
     } catch (error) {
       print('An error occurred during login: $error');
@@ -99,8 +92,6 @@ class _LoginScreenState extends State<Login> {
       });
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -190,7 +181,7 @@ class _LoginScreenState extends State<Login> {
                     elevation: 5,
                   ).copyWith(
                     backgroundColor:
-                    MaterialStateProperty.resolveWith((states) {
+                        MaterialStateProperty.resolveWith((states) {
                       if (states.contains(MaterialState.pressed)) {
                         return CustomColor.bluePrimary.withOpacity(0.8);
                       } else if (states.contains(MaterialState.disabled)) {
@@ -199,7 +190,7 @@ class _LoginScreenState extends State<Login> {
                       return CustomColor.bluePrimary;
                     }),
                     foregroundColor:
-                    MaterialStateProperty.resolveWith((states) {
+                        MaterialStateProperty.resolveWith((states) {
                       if (states.contains(MaterialState.pressed)) {
                         return Colors.white.withOpacity(0.8);
                       }

@@ -152,14 +152,14 @@ const getAllHistories = (req, res) => {
 
 const getHistoriesByMemberId = (req, res) => {
     try {
-        const { member_id } = req.params; // Get the member_id from the request params
+        const { id } = req.params; // Use 'id' to match the route parameter
 
-        if (!member_id) {
+        if (!id) {
             return res.status(400).json({ message: "Member ID is required!" });
         }
 
         // Query to fetch records from tbl_enter_history by member_id
-        db.query("SELECT * FROM tbl_enter_history WHERE member_id = ?", [member_id], (err, rows) => {
+        db.query("SELECT * FROM tbl_enter_history WHERE member_id = ?", [id], (err, rows) => {
             if (err) {
                 console.error("Error querying the database:", err);
                 return res.status(500).json({ message: "Internal Server Error" });
@@ -181,6 +181,7 @@ const getHistoriesByMemberId = (req, res) => {
         res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 };
+
 
 module.exports = { 
     createEnterHistory,
