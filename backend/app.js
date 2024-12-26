@@ -42,7 +42,8 @@ app.use("/", historiesRoutes); // This must point to the correct route file
 
 // Middleware for serving static files
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
-app.use("/histories", express.static(path.join(__dirname, "public//histories")));
+app.use("/histories", express.static(path.join(__dirname, "public/histories")));
+app.use("/process", express.static(path.join(__dirname, "public/process")));
 
 // Catch-all middleware for unknown routes
 app.use((req, res) => {

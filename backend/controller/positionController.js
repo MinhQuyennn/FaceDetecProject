@@ -7,7 +7,7 @@ const getAllPositions = async (req, res) => {
         res.status(200).json({
             success: true,
             data: rows
-        });
+        });  
     } catch (error) {
         console.error('Error fetching positions:', error);
         res.status(500).json({

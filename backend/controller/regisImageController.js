@@ -5,126 +5,142 @@ const db = require("../config/database");
 const sharp = require('sharp'); // For converting base64 image to JPEG buffer
 const { exec } = require("child_process");
 
-
+  
 function base64ToVector(base64) {
     const vector = Array.from({ length: 128 }, () => Math.random().toFixed(6)); // Mock 128-dimension vector
     return vector;  
 }
+ 
+const detectFaceAndProcess = (base64Image) => {
+  return new Promise((resolve, reject) => {
+      console.log("[DEBUG] Starting detectFaceAndProcess...");
 
-const detectFaceAndCrop = (base64Image) => {
-    return new Promise((resolve, reject) => {
-        const tempFile = path.join(__dirname, 'temp_image.jpg');
-        const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
-        fs.writeFileSync(tempFile, Buffer.from(base64Data, 'base64'));
+      const tempFile = path.join(__dirname, 'temp_image.jpg');
+      const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
+      console.log(`[DEBUG] Writing temp image to: ${tempFile}`);
+      fs.writeFileSync(tempFile, Buffer.from(base64Data, 'base64'));
 
-        exec(`python E:\\.kltn\\source_code\\backend\\model\\face_crop.py ${tempFile}`, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`Error: ${error.message}`);
-                return reject(error);
-            }
-            if (stderr) {
-                console.error(`stderr: ${stderr}`);
-                return reject(stderr);
-            }
+      const command = `python E:\\.kltn\\source_code\\backend\\model\\face_crop.py ${tempFile}`;
+      console.log(`[DEBUG] Running command: ${command}`);
+      exec(command, (error, stdout, stderr) => {
+          if (error) {
+              console.error(`[ERROR] Python script execution failed: ${stderr}`);
+              return reject("Error processing face image.");
+          }
 
-            console.log('Python script output:', stdout); // This should now include the full path
+          console.log("[DEBUG] Python script output received.");
 
-            // Extract the path from the Python output using a regular expression
-            const match = stdout.match(/Saved to:\s([^\n]+)/);
-            if (match) {
-                const croppedImagePath = match[1].trim();
-                console.log('Cropped image path:', croppedImagePath); // Log cropped image path for debugging
+          const originalMatch = stdout.match(/Original path:\s([^\n]+)/);
+          const processedMatch = stdout.match(/Processed path:\s([^\n]+)/);
+          const originalEmbeddingMatch = stdout.match(/Original embedding:\s([^\n]+)/);
+          const processedEmbeddingMatch = stdout.match(/Processed embedding:\s([^\n]+)/);
 
-                if (fs.existsSync(croppedImagePath)) {
-                    // Read and convert the cropped image to base64
-                    const croppedImageData = fs.readFileSync(croppedImagePath);
-                    const croppedBase64 = croppedImageData.toString('base64');
-                    resolve(`data:image/jpeg;base64,${croppedBase64}`);
-                } else {
-                    console.error('Error: Cropped image not found at path:', croppedImagePath);
-                    reject("Face not cropped correctly.");
-                }
-            } else {
-                console.error('Error: Could not extract the cropped image path from the Python output.');
-                reject("Face not cropped correctly.");
-            }
-        });
-    });
+          if (originalMatch && processedMatch && originalEmbeddingMatch && processedEmbeddingMatch) {
+              console.log("[DEBUG] Successfully parsed Python script output.");
+              resolve({
+                  originalPath: originalMatch[1].trim(),
+                  processedPath: processedMatch[1].trim(),
+                  originalEmbedding: JSON.parse(originalEmbeddingMatch[1]),
+                  processedEmbedding: JSON.parse(processedEmbeddingMatch[1]),
+              });
+          } else {
+              console.error("[ERROR] Failed to parse Python script output.");
+              reject("Face not processed correctly.");
+          }
+      });
+  });
 };
 
 const createRegisterFace = async (req, res) => {
-    try {
-        const { base64Image, member_id } = req.body;
+  try {
+      console.log("[DEBUG] Starting createRegisterFace...");
+      const { base64Image, member_id } = req.body;
 
-        if (!base64Image || !member_id) {
-            return res.status(400).json({ message: "Base64 image and member_id are required!" });
-        }
+      console.log(`[DEBUG] Request data: member_id=${member_id}, base64Image length=${base64Image ? base64Image.length : 0}`);
 
-        // Step 1: Retrieve account_id from tbl_member
-        const [rows] = await db.promise().query(
-            `SELECT account_id FROM tbl_member WHERE id = ?`,
-            [member_id]
-        );
+      if (!base64Image || !member_id) {
+          console.error("[ERROR] Missing required fields.");
+          return res.status(400).json({ message: "Base64 image and member_id are required!" });
+      }
 
-        if (rows.length === 0) {
-            return res.status(404).json({ message: "Member not found!" });
-        }
+      console.log("[DEBUG] Querying database for member...");
+      const [rows] = await db.promise().query(
+          `SELECT account_id FROM tbl_member WHERE id = ?`,
+          [member_id]
+      );
 
-        const account_id = rows[0].account_id;
+      if (rows.length === 0) {
+          console.error("[ERROR] Member not found.");
+          return res.status(404).json({ message: "Member not found!" });
+      }
 
-        // Step 2: Detect face and crop if detected
-        const croppedBase64Image = await detectFaceAndCrop(base64Image);
+      const account_id = rows[0].account_id;
+      console.log(`[DEBUG] Found account_id: ${account_id}`);
 
-        if (!croppedBase64Image) {
-            return res.status(400).json({ message: "No face detected in the image!" });
-        }
+      console.log("[DEBUG] Calling detectFaceAndProcess...");
+      const { originalPath, processedPath, originalEmbedding, processedEmbedding } = await detectFaceAndProcess(base64Image);
 
-        // Step 3: Convert base64 to image buffer and save as JPEG
-        const base64Data = croppedBase64Image.replace(/^data:image\/\w+;base64,/, "");
-        
-        // Convert base64 to buffer and ensure it's in JPEG format using sharp
-        const imageBuffer = await sharp(Buffer.from(base64Data, "base64"))
-            .jpeg() // Convert to JPEG
-            .toBuffer();
+      if (!originalPath || !processedPath) {
+          console.error("[ERROR] Face not detected in the image.");
+          return res.status(400).json({ message: "Face not detected in the image!" });
+      }
 
-        const uniqueFileName = `${uuidv4()}.jpg`;
-        const uploadDir = path.join(__dirname, `../public/uploads/${account_id}`);
-        const imagePath = path.join(uploadDir, uniqueFileName);
-        const imageUrl = `http://localhost:${process.env.PORT || 8888}/uploads/${account_id}/${uniqueFileName}`;
+      console.log("[DEBUG] Preparing file paths and directories...");
+      const uniqueFileNameOriginal = `${uuidv4()}.jpg`;
+      const uniqueFileNameProcessed = `processed_${uuidv4()}.jpg`;
+      const uploadDirOriginal = path.join(__dirname, `../public/uploads/${account_id}`);
+      const uploadDirProcessed = path.join(__dirname, `../public/process/${account_id}`);
+      const imageUrlOriginal = `http://localhost:${process.env.PORT || 8888}/uploads/${account_id}/${uniqueFileNameOriginal}`;
+      const imageUrlProcessed = `http://localhost:${process.env.PORT || 8888}/process/${account_id}/${uniqueFileNameProcessed}`;
 
-        // Ensure the directory exists
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
+      console.log(`[DEBUG] Upload paths: ${uploadDirOriginal}, ${uploadDirProcessed}`);
 
-        // Save the image file
-        fs.writeFileSync(imagePath, imageBuffer);
+      if (!fs.existsSync(uploadDirOriginal)) fs.mkdirSync(uploadDirOriginal, { recursive: true });
+      if (!fs.existsSync(uploadDirProcessed)) fs.mkdirSync(uploadDirProcessed, { recursive: true });
 
-        // Step 4: Generate the image vector
-        const imageVector = base64ToVector(base64Image);
+      fs.writeFileSync(path.join(uploadDirOriginal, uniqueFileNameOriginal), fs.readFileSync(originalPath));
+      fs.writeFileSync(path.join(uploadDirProcessed, uniqueFileNameProcessed), fs.readFileSync(processedPath));
 
-        // Step 5: Insert into tbl_register_faces
-        const sql = `
-            INSERT INTO tbl_register_faces (face_image, member_id, image_vector)
-            VALUES (?, ?, ?)
-        `;
-        await db.promise().query(sql, [imageUrl, member_id, JSON.stringify(imageVector)]);
+      console.log("[DEBUG] Formatting embeddings with account_id...");
+      const formattedOriginalEmbedding = [[account_id], originalEmbedding];
+      const formattedProcessedEmbedding = [[account_id], processedEmbedding];
 
-        // Respond with success
-        res.status(201).json({
-            message: "Face registration created successfully!",
-            data: {
-                face_image: imageUrl,
-                member_id,
-                account_id,
-                image_vector: imageVector,
-            },
-        });
-    } catch (error) {
-        console.error("Error creating face registration:", error);
-        res.status(500).json({ message: "Internal Server Error", error: error.message });
-    }
+      console.log("[DEBUG] Saving data to database...");
+      const sql = `
+          INSERT INTO tbl_register_faces (face_image, face_image_process, member_id, image_vector, image_vector_process)
+          VALUES (?, ?, ?, ?, ?)
+      `;
+      await db.promise().query(sql, [
+          imageUrlOriginal,
+          imageUrlProcessed,
+          member_id,
+          JSON.stringify(formattedOriginalEmbedding),
+          JSON.stringify(formattedProcessedEmbedding),
+      ]);
+
+      console.log("[DEBUG] Face registration successful.");
+      res.status(201).json({
+          message: "Face registration created successfully!",
+          data: {
+              face_image: imageUrlOriginal,
+              face_image_process: imageUrlProcessed,
+              member_id,
+              account_id,
+              image_vector: formattedOriginalEmbedding,
+              image_vector_process: formattedProcessedEmbedding,
+          },
+      });
+  } catch (error) {
+      console.error("[ERROR] Error creating face registration:", error);
+      res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
 };
+
+
+
+
+
+
   
 // Function to get the image and its vector by member_id
 const getImageByID = async (req, res) => {
@@ -137,7 +153,7 @@ const getImageByID = async (req, res) => {
 
   try {
     // Query to get face image and vector by member_id
-    const query = 'SELECT id, face_image, image_vector FROM tbl_register_faces WHERE member_id = ?';
+    const query = 'SELECT id, face_image, image_vector, face_image_process, image_vector_process FROM tbl_register_faces WHERE member_id = ?';
     const [results] = await db.promise().query(query, [memberId]);
 
     if (results.length === 0) {
@@ -157,6 +173,8 @@ const getImageByID = async (req, res) => {
         id: row.id,
         face_image_url: row.face_image,
         image_vector: parsedVector,
+        face_image_process: row.face_image_process,
+        image_vector_process:row.image_vector_process
       };
     });
 
@@ -238,6 +256,6 @@ const deleteRegisterFace = (req, res) => {
 module.exports = { 
     createRegisterFace,
     deleteRegisterFace,
-    detectFaceAndCrop,
-    getImageByID
+    getImageByID,
+    detectFaceAndProcess
 };
