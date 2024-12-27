@@ -7,6 +7,7 @@ router.post("/register-face", registerController.createRegisterFace);
 router.post("/detect-face", registerController.detectFaceAndProcess);
 router.delete("/delete-face/:id", registerController.deleteRegisterFace);
 router.get("/getimagebyID/:memberId", registerController.getImageByID);
+router.get("/getAllDataWithUsername", registerController.getAllDataWithUsername);
 
 
 module.exports = router;  

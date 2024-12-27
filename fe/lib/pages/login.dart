@@ -20,7 +20,7 @@ class _LoginScreenState extends State<Login> {
   final _storage = const FlutterSecureStorage();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  var pathURLL = "http://10.0.2.2:8081";
+  var pathURLL = "http://192.168.39.211:8081";
   bool _isLoading = false;
 
   @override
@@ -48,7 +48,9 @@ class _LoginScreenState extends State<Login> {
     });
 
     try {
-      final response = await http.post(
+      print('connect api');
+
+    final response = await http.post(
         Uri.parse('$pathURLL/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -56,6 +58,8 @@ class _LoginScreenState extends State<Login> {
           'password': _passwordController.text
         }),
       );
+
+      print('connect apii');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

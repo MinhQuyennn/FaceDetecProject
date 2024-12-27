@@ -186,6 +186,53 @@ const getImageByID = async (req, res) => {
   }
 };
 
+const getAllDataWithUsername = async (req, res) => {
+  try {
+    // Query to get all data from tbl_register_faces and join with tbl_account to get the username
+    const query = `
+      SELECT 
+        r.member_id, 
+        r.face_image, 
+        r.image_vector, 
+        r.face_image_process, 
+        r.image_vector_process,
+        m.account_id
+      FROM tbl_register_faces r
+      LEFT JOIN tbl_member m ON r.id = m.id
+    `;
+    const [results] = await db.promise().query(query);
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'No data found in the database' });
+    }
+
+    // Prepare response data by mapping over all rows
+    const response = results.map(row => {
+      let parsedVector;
+      try {
+        parsedVector = Array.isArray(row.image_vector) ? row.image_vector : JSON.parse(row.image_vector);
+      } catch (error) {
+        console.error('Error parsing image_vector:', error);
+        throw new Error('Failed to process image_vector');
+      }
+      return {
+        id: row.id,
+        face_image_url: row.face_image,
+        image_vector: parsedVector,
+        face_image_process: row.face_image_process,
+        image_vector_process: row.image_vector_process,
+        username: row.username // Add username to the response
+      };
+    });
+
+    // Respond with all rows data
+    res.status(200).json(response);
+  } catch (err) {
+    console.error('Error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 
 
  
@@ -257,5 +304,6 @@ module.exports = {
     createRegisterFace,
     deleteRegisterFace,
     getImageByID,
-    detectFaceAndProcess
+    detectFaceAndProcess,
+    getAllDataWithUsername
 };
