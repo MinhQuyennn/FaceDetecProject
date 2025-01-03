@@ -21,7 +21,7 @@ const detectFaceAndProcess = (base64Image) => {
       fs.writeFileSync(tempFile, Buffer.from(base64Data, 'base64'));
 
       const command = `python E:\\.kltn\\source_code\\backend\\model\\face_crop.py ${tempFile}`;
-      console.log(`[DEBUG] Running command: ${command}`);
+      console.log(`[DEBUG] Running command: ${command}`); 
       exec(command, (error, stdout, stderr) => {
           if (error) {
               console.error(`[ERROR] Python script execution failed: ${stderr}`);
@@ -137,11 +137,6 @@ const createRegisterFace = async (req, res) => {
 };
 
 
-
-
-
-
-  
 // Function to get the image and its vector by member_id
 const getImageByID = async (req, res) => {
   const { memberId } = req.params;
@@ -221,7 +216,7 @@ const getAllDataWithUsername = async (req, res) => {
         image_vector: parsedVector,
         face_image_process: row.face_image_process,
         image_vector_process: row.image_vector_process,
-        username: row.username // Add username to the response
+        username: row.account_id // Add username to the response
       };
     });
 

@@ -1,40 +1,34 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 
-// Define InsertImage as a StatefulWidget
 class InsertImage extends StatefulWidget {
   final String memberId;
 
-  // Constructor to pass memberId
   InsertImage({required this.memberId});
 
   @override
   _InsertImageAdminState createState() => _InsertImageAdminState();
 }
 
-// Define the corresponding state class for InsertImage
 class _InsertImageAdminState extends State<InsertImage> {
   final ImagePicker _picker = ImagePicker();
-  String _base64Image = ''; // Initialize as an empty string to avoid LateInitializationError
+  String _base64Image = '';
   bool _isLoading = false;
 
-  // Pick an image from the gallery or camera
-  Future<void> _pickImage() async {
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+  Future<void> _pickImage(ImageSource source) async {
+    final XFile? pickedFile = await _picker.pickImage(source: source);
 
     if (pickedFile != null) {
       final bytes = await pickedFile.readAsBytes();
       setState(() {
-        _base64Image = base64Encode(bytes); // Convert image to Base64
+        _base64Image = base64Encode(bytes);
       });
     }
   }
 
-  // Upload the image to the server
   Future<void> _uploadImage() async {
     if (_base64Image.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -48,11 +42,11 @@ class _InsertImageAdminState extends State<InsertImage> {
     });
 
     final response = await http.post(
-      Uri.parse('http://10.0.2.2:8081/register-face'), // Adjust API URL
+      Uri.parse('http://10.0.2.2:8081/register-face'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'base64Image': _base64Image,
-        'member_id': widget.memberId, // Access the memberId from widget
+        'member_id': widget.memberId,
       }),
     );
 
@@ -61,14 +55,9 @@ class _InsertImageAdminState extends State<InsertImage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(data['message'] ?? 'Image uploaded successfully!')),
       );
-
-      // Reset the image after a successful upload
       setState(() {
-        _base64Image = ''; // Reset the image to allow new image selection
+        _base64Image = '';
       });
-
-      // Optionally, navigate back after success
-      // Navigator.pop(context);
     } else {
       final error = jsonDecode(response.body);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -80,29 +69,117 @@ class _InsertImageAdminState extends State<InsertImage> {
       _isLoading = false;
     });
   }
-
+  void _removeImage() {
+    setState(() {
+      _base64Image = '';
+    });
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView( // Wrap the entire Column with SingleChildScrollView
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              ElevatedButton(
-                onPressed: _pickImage,
-                child: Text('Pick Image'),
+              Text(
+                'Add an Image',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 20),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => _pickImage(ImageSource.gallery),
+                    icon: Icon(Icons.photo,       color: Colors.white, // Set the color of the text
+                    ),
+                    label: Text('Gallery',
+                      style: TextStyle(
+                        color: Colors.white, // Set the color of the text
+                      ),
+                    ),
+
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 10), // Space between buttons
+
+                  ElevatedButton.icon(
+                    onPressed: () => _pickImage(ImageSource.camera),
+                    icon: Icon(Icons.camera_alt,       color: Colors.white, // Set the color of the text
+                    ),
+                    label: Text('Camera',
+                      style: TextStyle(
+                        color: Colors.white, // Set the color of the text
+                      ),),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               SizedBox(height: 20),
               if (_base64Image.isNotEmpty)
-                Image.memory(base64Decode(_base64Image), width: 200, height: 200),
+                Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  elevation: 5,
+                  child: Column(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: Image.memory(
+                          base64Decode(_base64Image),
+                          width: double.infinity,
+                          height: 200,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: _removeImage,
+                        icon: Icon(Icons.delete, color: Colors.red),
+                        label: Text(
+                          'Remove Image',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _isLoading ? null : _uploadImage,
                 child: _isLoading
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text('Upload Image'),
+                    ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(color: Colors.white),
+                    SizedBox(width: 10),
+                    Text('Uploading...'),
+                  ],
+                )
+                    : Text('Upload Image',     style: TextStyle(
+                  color: Colors.white, // Set the color of the text
+                ),),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 15),
+                ),
               ),
             ],
           ),

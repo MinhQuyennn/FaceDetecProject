@@ -31,6 +31,8 @@ dependencies:
   flutter:
     sdk: flutter
   image_picker: any
+  page_transition: ^2.0.9  # Use the latest version
+  animate_do: ^2.1.0
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -61,6 +63,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/images/
 
   # To add assets to your application, add an assets section, like this:
   #   - images/a_dot_burr.jpeg

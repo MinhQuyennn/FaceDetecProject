@@ -5,8 +5,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../pages/admin/homeadmin.dart';
 import '../pages/staff/homeestaff.dart';
-import 'package:fe/constants/colors.dart';
 import '../pages/manager/homemanager.dart';
+import 'package:fe/components/background.dart';
 
 class Login extends StatefulWidget {
   const Login({Key? key}) : super(key: key);
@@ -20,8 +20,9 @@ class _LoginScreenState extends State<Login> {
   final _storage = const FlutterSecureStorage();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  var pathURLL = "http://192.168.39.211:8081";
+  final String pathURLL = "http://10.0.2.2:8081";
   bool _isLoading = false;
+  bool _rememberMe = false;
 
   @override
   void initState() {
@@ -32,8 +33,6 @@ class _LoginScreenState extends State<Login> {
   void _checkAutoLogin() async {
     final String? username = await _storage.read(key: "KEY_USERNAME");
     final String? password = await _storage.read(key: "KEY_PASSWORD");
-    debugPrint('Auto-login username: $username');
-    debugPrint('Auto-login password: $password');
 
     if (username != null && password != null) {
       _emailController.text = username;
@@ -48,18 +47,14 @@ class _LoginScreenState extends State<Login> {
     });
 
     try {
-      print('connect api');
-
-    final response = await http.post(
+      final response = await http.post(
         Uri.parse('$pathURLL/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'username': _emailController.text,
-          'password': _passwordController.text
+          'password': _passwordController.text,
         }),
       );
-
-      print('connect apii');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -91,10 +86,39 @@ class _LoginScreenState extends State<Login> {
           print('Invalid user role: $userRole');
           Fluttertoast.showToast(msg: 'Invalid user role');
         }
+      } else if (response.statusCode == 403) {
+        // Handle "Account is disabled" error
+        final data = jsonDecode(response.body);
+        final String errorMessage = data['error'] ?? 'Account is disabled';
+        print('Account disabled error: $errorMessage');
+        Fluttertoast.showToast(
+          msg: errorMessage,
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      } else {
+        final data = jsonDecode(response.body);
+        final String errorMessage = data['error'] ?? 'Login failed';
+        print('Error: $errorMessage');
+        Fluttertoast.showToast(
+          msg: errorMessage,
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
       }
     } catch (error) {
       print('An error occurred during login: $error');
-      Fluttertoast.showToast(msg: 'An error occurred during login');
+      Fluttertoast.showToast(
+        msg: 'An error occurred during login',
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
     } finally {
       setState(() {
         _isLoading = false;
@@ -102,122 +126,93 @@ class _LoginScreenState extends State<Login> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
-    var size = MediaQuery.of(context).size;
+    Size size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: size.width * 0.1),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: size.height * 0.1),
-              Text(
-                "Welcome back.",
+      body: Background(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Container(
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: const Text(
+                "LOGIN",
                 style: TextStyle(
-                  color: Color(0xFF161925),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 32,
-                ),
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2661FA),
+                    fontSize: 36),
+                textAlign: TextAlign.left,
               ),
-              SizedBox(height: size.height * 0.15),
-              Form(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextFormField(
-                      decoration: InputDecoration(
-                        labelText: "Username",
-                        labelStyle: TextStyle(color: CustomColor.bluePrimary),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                              color: CustomColor.bluePrimary, width: 2),
-                        ),
-                      ),
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    SizedBox(height: size.height * 0.02),
-                    TextFormField(
-                      decoration: InputDecoration(
-                        labelText: "Password",
-                        labelStyle: TextStyle(color: CustomColor.bluePrimary),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                              color: CustomColor.bluePrimary, width: 2),
-                        ),
-                      ),
-                      controller: _passwordController,
-                      obscureText: true,
-                    ),
-                  ],
-                ),
+            ),
+            SizedBox(height: size.height * 0.03),
+            Container(
+              alignment: Alignment.center,
+              margin: const EdgeInsets.symmetric(horizontal: 40),
+              child: TextField(
+                controller: _emailController,
+                decoration: const InputDecoration(labelText: "Username"),
               ),
-              SizedBox(height: size.height * 0.045),
-              CheckboxListTile(
-                value: _isLoading,
-                onChanged: (bool? newValue) {
-                  setState(() {
-                    _isLoading = newValue!;
-                  });
-                },
-                title: Text(
-                  "Remember me",
-                  style: TextStyle(color: CustomColor.bluePrimary),
-                ),
-                activeColor: CustomColor.bluePrimary,
+            ),
+            SizedBox(height: size.height * 0.03),
+            Container(
+              alignment: Alignment.center,
+              margin: const EdgeInsets.symmetric(horizontal: 40),
+              child: TextField(
+                controller: _passwordController,
+                decoration: const InputDecoration(labelText: "Password"),
+                obscureText: true,
               ),
-              SizedBox(height: size.height * 0.05),
-              Container(
-                width: MediaQuery.of(context).size.width - 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _handleSubmit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: CustomColor.bluePrimary,
-                    padding: EdgeInsets.symmetric(vertical: 15, horizontal: 40),
-                    textStyle: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    elevation: 5,
-                  ).copyWith(
-                    backgroundColor:
-                        MaterialStateProperty.resolveWith((states) {
-                      if (states.contains(MaterialState.pressed)) {
-                        return CustomColor.bluePrimary.withOpacity(0.8);
-                      } else if (states.contains(MaterialState.disabled)) {
-                        return Colors.blue;
-                      }
-                      return CustomColor.bluePrimary;
-                    }),
-                    foregroundColor:
-                        MaterialStateProperty.resolveWith((states) {
-                      if (states.contains(MaterialState.pressed)) {
-                        return Colors.white.withOpacity(0.8);
-                      }
-                      return Colors.white;
-                    }),
+            ),
+            SizedBox(height: size.height * 0.05),
+            Container(
+              alignment: Alignment.centerRight,
+              margin: const EdgeInsets.symmetric(horizontal: 40),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Checkbox(
+                    value: _rememberMe,
+                    onChanged: (value) {
+                      setState(() {
+                        _rememberMe = value ?? false;
+                      });
+                    },
                   ),
-                  child: Text(
-                    "Sign In",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  const Text(
+                    "Remember me",
+                    style: TextStyle(fontSize: 14, color: Color(0xFF2661FA)),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: size.height * 0.03),
+            Container(
+              alignment: Alignment.centerRight,
+              margin: const EdgeInsets.symmetric(horizontal: 40),
+              child: _isLoading
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
+                onPressed: _handleSubmit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue, // Blue button color
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 40, vertical: 15),
+                ),
+                child: const Text(
+                  "LOGIN",
+                  style: TextStyle(
+                    color: Colors.white, // White text
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              SizedBox(height: size.height * 0.015),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
