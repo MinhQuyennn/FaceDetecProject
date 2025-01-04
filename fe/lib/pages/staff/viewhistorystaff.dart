@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class Historystaff extends StatefulWidget {
   const Historystaff({Key? key}) : super(key: key);
@@ -15,6 +16,8 @@ class Historystaff extends StatefulWidget {
 }
 
 class _HistorystaffScreenState extends State<Historystaff> {
+  final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
   final _storage = const FlutterSecureStorage();
   List<Map<String, String>> _historyData = [];
   bool _isLoading = true;
@@ -34,8 +37,9 @@ class _HistorystaffScreenState extends State<Historystaff> {
   }
 
   Future<void> _fetchHistoryData() async {
-    const String getAccountApi = "http://10.0.2.2:8081/getAccountById/";
-    const String getHistoriesApi = "http://10.0.2.2:8081/getHistoriesByMemberId/";
+
+    final String getAccountApi = "$apiBaseUrl/getAccountById/";
+    final String getHistoriesApi = "$apiBaseUrl/getHistoriesByMemberId/";
 
     try {
       // Fetch username from secure storage

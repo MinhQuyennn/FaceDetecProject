@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AddImage extends StatefulWidget {
   final String memberId;
@@ -14,6 +15,8 @@ class AddImage extends StatefulWidget {
 }
 
 class _AddImageAdminState extends State<AddImage> {
+  final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
   final ImagePicker _picker = ImagePicker();
   String _base64Image = '';
   bool _isLoading = false;
@@ -42,7 +45,7 @@ class _AddImageAdminState extends State<AddImage> {
     });
 
     final response = await http.post(
-      Uri.parse('http://10.0.2.2:8081/register-face'),
+      Uri.parse('$apiBaseUrl/register-face'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'base64Image': _base64Image,

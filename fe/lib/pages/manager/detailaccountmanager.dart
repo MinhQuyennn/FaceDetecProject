@@ -3,6 +3,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:fe/pages/manager/fetchimagemanager.dart';
 import 'package:fe/pages/manager/insertimagemanager.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+
 class DetailAccountmanager extends StatefulWidget {
   final Map<String, dynamic> accountDetails;
 
@@ -13,6 +16,8 @@ class DetailAccountmanager extends StatefulWidget {
 }
 
 class _DetailAccountmanagerState extends State<DetailAccountmanager> {
+  final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
   // Controllers for text fields
   late TextEditingController _passwordController;
   late TextEditingController _nameController;
@@ -53,7 +58,7 @@ class _DetailAccountmanagerState extends State<DetailAccountmanager> {
   Future<void> _updateDetails() async {
     try {
       // Update Account Data
-      final accountUrl = Uri.parse('http://10.0.2.2:8081/updateaccountusername/${widget.accountDetails['username']}');
+      final accountUrl = Uri.parse('$apiBaseUrl/updateaccountusername/${widget.accountDetails['username']}');
       final accountBody = {
         'status': _selectedStatus,
         'role': _selectedRole,
@@ -66,7 +71,7 @@ class _DetailAccountmanagerState extends State<DetailAccountmanager> {
       );
 
       // Update Member Data
-      final memberUrl = Uri.parse('http://10.0.2.2:8081/updateMember/${widget.accountDetails['id']}');
+      final memberUrl = Uri.parse('$apiBaseUrl/updateMember/${widget.accountDetails['id']}');
       final memberBody = {
         'name': _nameController.text,
         'address': _addressController.text,

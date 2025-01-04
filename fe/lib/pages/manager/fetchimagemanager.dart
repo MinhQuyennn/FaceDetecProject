@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 class FetchFaceImagesPage extends StatefulWidget {
   final String memberId;
@@ -14,6 +16,8 @@ class FetchFaceImagesPage extends StatefulWidget {
 }
 
 class _FetchFaceImagesPageState extends State<FetchFaceImagesPage> {
+  final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
   List<Map<String, String>> _faceImageData = []; // Store both id and image URL
   bool _isLoading = true;
   String? _errorMessage;
@@ -38,7 +42,7 @@ class _FetchFaceImagesPageState extends State<FetchFaceImagesPage> {
   }
 
   Future<void> _fetchFaceData(String memberId) async {
-    final url = Uri.parse('http://10.0.2.2:8081/getImageByID/$memberId');
+    final url = Uri.parse('$apiBaseUrl/getImageByID/$memberId');
 
     try {
       final response = await http.get(url);
@@ -192,8 +196,10 @@ class FullImagePage extends StatelessWidget {
       : super(key: key);
 
   Future<void> _deleteImage(BuildContext context, String imageId) async {
+    final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
     try {
-      final url = Uri.parse('http://10.0.2.2:8081/delete-face/$imageId');
+      final url = Uri.parse('$apiBaseUrl/delete-face/$imageId');
 
       final response = await http.delete(url);
 

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class viewProfileManager extends StatefulWidget {
   const viewProfileManager({Key? key}) : super(key: key);
@@ -14,6 +15,8 @@ class viewProfileManager extends StatefulWidget {
 }
 
 class _viewProfileManagerState extends State<viewProfileManager> {
+  final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
   final FlutterSecureStorage _storage = FlutterSecureStorage();
 
   // Controllers for text fields
@@ -46,7 +49,7 @@ class _viewProfileManagerState extends State<viewProfileManager> {
   }
 
   Future<void> _fetchFaceData(String memberId) async {
-    final url = Uri.parse('http://10.0.2.2:8081/getImageByID/$memberId');
+    final url = Uri.parse('$apiBaseUrl/getImageByID/$memberId');
 
     try {
       final response = await http.get(url);
@@ -103,7 +106,7 @@ class _viewProfileManagerState extends State<viewProfileManager> {
 
       if (username.isEmpty) throw Exception("Username not found in storage.");
 
-      final url = Uri.parse('http://10.0.2.2:8081/getAccountById/$username');
+      final url = Uri.parse('$apiBaseUrl/getAccountById/$username');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -143,7 +146,7 @@ class _viewProfileManagerState extends State<viewProfileManager> {
 
     try {
       final accountUrl = Uri.parse(
-          'http://10.0.2.2:8081/updateaccountusername/${_profileDetails!['username']}');
+          '$apiBaseUrl/updateaccountusername/${_profileDetails!['username']}');
       final accountBody = {
         'status': _selectedStatus,
         'role': _selectedRole,
@@ -158,7 +161,7 @@ class _viewProfileManagerState extends State<viewProfileManager> {
       );
 
       final memberUrl = Uri.parse(
-          'http://10.0.2.2:8081/updateMember/${_profileDetails!['id']}');
+          '$apiBaseUrl/updateMember/${_profileDetails!['id']}');
       final memberBody = {
         'name': _nameController.text,
         'address': _addressController.text,

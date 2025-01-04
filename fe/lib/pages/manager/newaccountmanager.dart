@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:fe/pages/manager/addimagemanager.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class NewAccmanager extends StatefulWidget {
   const NewAccmanager({Key? key}) : super(key: key);
@@ -12,6 +13,8 @@ class NewAccmanager extends StatefulWidget {
 }
 
 class _NewAccmanagerState extends State<NewAccmanager> {
+  final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
   final _formKey = GlobalKey<FormState>();
 
   // TextEditingControllers for form fields
@@ -50,7 +53,7 @@ class _NewAccmanagerState extends State<NewAccmanager> {
   Future<void> fetchPositions() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8081/getPosition'),
+        Uri.parse('$apiBaseUrl/getPosition'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -83,7 +86,7 @@ class _NewAccmanagerState extends State<NewAccmanager> {
 
     try {
       final accountResponse = await http.post(
-        Uri.parse('http://10.0.2.2:8081/signUp'),
+        Uri.parse('$apiBaseUrl/signUp'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'username': usernameController.text,
@@ -105,7 +108,7 @@ class _NewAccmanagerState extends State<NewAccmanager> {
       final accountId = accountData['username'];
 
       final memberResponse = await http.post(
-        Uri.parse('http://10.0.2.2:8081/createmembers'),
+        Uri.parse('$apiBaseUrl/createmembers'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'account_id': accountId,

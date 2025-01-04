@@ -292,7 +292,50 @@ const deleteRegisterFace = (req, res) => {
       res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
   };
-  
+
+
+
+const getFaceRegistrationStats = async (req, res) => {
+    try {
+        const queryRegistered = `
+            SELECT COUNT(DISTINCT m.id) AS registered_count
+            FROM tbl_member m
+            INNER JOIN tbl_register_faces rf ON m.id = rf.member_id;
+        `;
+
+        const queryNotRegistered = `
+            SELECT COUNT(*) AS not_registered_count
+            FROM tbl_member m
+            WHERE NOT EXISTS (
+                SELECT 1 FROM tbl_register_faces rf
+                WHERE m.id = rf.member_id
+            );
+        `;
+
+        // Execute both queries
+        const [registeredRows] = await db.promise().query(queryRegistered);
+        const [notRegisteredRows] = await db.promise().query(queryNotRegistered);
+
+        // Extract counts
+        const registeredCount = registeredRows[0].registered_count;
+        const notRegisteredCount = notRegisteredRows[0].not_registered_count;
+
+        // Send the response
+        res.json({
+            success: true,
+            data: {
+                registeredCount,
+                notRegisteredCount,
+            },
+        });
+    } catch (error) {
+        console.error("Error fetching face registration stats:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch face registration stats",
+        });
+    }
+};
 
 
 module.exports = { 
@@ -300,5 +343,6 @@ module.exports = {
     deleteRegisterFace,
     getImageByID,
     detectFaceAndProcess,
-    getAllDataWithUsername
+    getAllDataWithUsername,
+    getFaceRegistrationStats
 };

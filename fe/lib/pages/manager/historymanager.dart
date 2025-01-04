@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class Historymanager extends StatefulWidget {
   const Historymanager({Key? key}) : super(key: key);
@@ -13,6 +14,8 @@ class Historymanager extends StatefulWidget {
 }
 
 class _HistorymanagerState extends State<Historymanager> {
+  final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
   List<Map<String, String>> _historyData = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -31,7 +34,8 @@ class _HistorymanagerState extends State<Historymanager> {
   }
 
   Future<void> _fetchHistoryData() async {
-    const String apiUrl = "http://10.0.2.2:8081/getAllHistories";
+
+    final String apiUrl = "$apiBaseUrl/getAllHistories";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));

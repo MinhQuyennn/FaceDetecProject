@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 class HistoryAdmin extends StatefulWidget {
   const HistoryAdmin({Key? key}) : super(key: key);
@@ -13,6 +15,8 @@ class HistoryAdmin extends StatefulWidget {
 }
 
 class _HistoryAdminState extends State<HistoryAdmin> {
+  final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
   List<Map<String, String>> _historyData = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -25,13 +29,13 @@ class _HistoryAdminState extends State<HistoryAdmin> {
 
   String _getUpdatedImageUrl(String imageUrl) {
     if (defaultTargetPlatform == TargetPlatform.android) {
-      return imageUrl.replaceAll('localhost', '10.0.2.2');
+      return imageUrl.replaceAll('http://localhost:8081', '$apiBaseUrl');
     }
     return imageUrl;
   }
 
   Future<void> _fetchHistoryData() async {
-    const String apiUrl = "http://10.0.2.2:8081/getAllHistories";
+    final String apiUrl = "$apiBaseUrl/getAllHistories";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -86,7 +90,7 @@ class _HistoryAdminState extends State<HistoryAdmin> {
   }
 
   Future<void> _deleteHistory(String historyId) async {
-    final String deleteApiUrl = "http://10.0.2.2:8081/deleteHistories/$historyId";
+    final String deleteApiUrl = "$apiBaseUrl/deleteHistories/$historyId";
 
     try {
       final response = await http.delete(Uri.parse(deleteApiUrl));

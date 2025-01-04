@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:fe/pages/manager/detailaccountmanager.dart';
 import 'package:fe/pages/manager/newaccountmanager.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ManageAccmanager extends StatefulWidget {
   const ManageAccmanager({Key? key}) : super(key: key);
@@ -13,6 +14,8 @@ class ManageAccmanager extends StatefulWidget {
 }
 
 class _ManageAccmanagerState extends State<ManageAccmanager> {
+  final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
   late Future<List<Map<String, dynamic>>> _accountsFuture;
   List<Map<String, dynamic>> _allAccounts = [];
   List<Map<String, dynamic>> _filteredAccounts = [];
@@ -28,7 +31,7 @@ class _ManageAccmanagerState extends State<ManageAccmanager> {
   }
 
   Future<List<Map<String, dynamic>>> fetchAccounts() async {
-    final url = Uri.parse('http://10.0.2.2:8081/getAllInforAcc');
+    final url = Uri.parse('$apiBaseUrl/getAllInforAcc');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -52,7 +55,7 @@ class _ManageAccmanagerState extends State<ManageAccmanager> {
   Future<void> _checkFaceStatus() async {
     for (var account in _allAccounts) {
       String memberId = account['id'].toString();
-      final url = Uri.parse('http://10.0.2.2:8081/getImageByID/$memberId');
+      final url = Uri.parse('$apiBaseUrl/getImageByID/$memberId');
 
       try {
         final response = await http.get(url);

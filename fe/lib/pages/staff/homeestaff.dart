@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class Homepagestaff extends StatefulWidget {
   const Homepagestaff({Key? key}) : super(key: key);
@@ -13,6 +14,8 @@ class Homepagestaff extends StatefulWidget {
 }
 
 class _HomepagestaffScreenState extends State<Homepagestaff> {
+  final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
   final _storage = const FlutterSecureStorage();
   String _memberName = ''; // Default name
   String _username = '';
@@ -38,7 +41,7 @@ class _HomepagestaffScreenState extends State<Homepagestaff> {
       // Proceed only if username exists
       if (username.isNotEmpty) {
         final response = await http.get(
-          Uri.parse('http://10.0.2.2:8081/getAccountById/$username'),
+          Uri.parse('$apiBaseUrl/getAccountById/$username'),
         );
 
         if (response.statusCode == 200) {

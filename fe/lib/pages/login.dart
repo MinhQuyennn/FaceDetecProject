@@ -7,6 +7,7 @@ import '../pages/admin/homeadmin.dart';
 import '../pages/staff/homeestaff.dart';
 import '../pages/manager/homemanager.dart';
 import 'package:fe/components/background.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class Login extends StatefulWidget {
   const Login({Key? key}) : super(key: key);
@@ -17,10 +18,11 @@ class Login extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<Login> {
+  final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
   final _storage = const FlutterSecureStorage();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final String pathURLL = "http://10.0.2.2:8081";
   bool _isLoading = false;
   bool _rememberMe = false;
 
@@ -48,7 +50,7 @@ class _LoginScreenState extends State<Login> {
 
     try {
       final response = await http.post(
-        Uri.parse('$pathURLL/login'),
+        Uri.parse('$apiBaseUrl/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'username': _emailController.text,
