@@ -34,6 +34,8 @@ dependencies:
   page_transition: ^2.0.9  # Use the latest version
   animate_do: ^2.1.0
   flutter_dotenv: ^5.0.2
+  intl: ^0.18.0 # Use the latest version available
+
 
 
 

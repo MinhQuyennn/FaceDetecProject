@@ -1,42 +1,50 @@
-from retinaface import RetinaFace
-from deepface import DeepFace
-from PIL import Image
+import face_recognition
 import cv2
-import sys
 import os
 import json
-
-sys.stdout.reconfigure(line_buffering=True)
+from PIL import Image
+import sys
 
 def detect_and_process_face(image_path):
     print(f"Processing image: {image_path}", flush=True)
     try:
-        # Detect face using RetinaFace
-        faces = RetinaFace.extract_faces(img_path=image_path, align=True)
-        if not faces:
+        # Load the image
+        image = face_recognition.load_image_file(image_path)
+
+        # Detect face locations
+        face_locations = face_recognition.face_locations(image)
+
+        if not face_locations:
             print("No face detected! Skipping...", flush=True)
             return None, None
 
         # Select the first detected face
-        face_np = faces[0]
+        top, right, bottom, left = face_locations[0]
+        face_np = image[top:bottom, left:right]
+
+        # Save the original cropped face
+        original_output_path = os.path.join(
+            os.path.dirname(image_path), 'original_cropped_face.jpg'
+        )
+        Image.fromarray(face_np).save(original_output_path, 'JPEG')
 
         # Process face
         # Apply median blur
         face_np = cv2.medianBlur(face_np, 1)
 
         # Convert to YUV and equalize histogram for brightness
-        face_yuv = cv2.cvtColor(face_np, cv2.COLOR_BGR2YUV)
+        face_yuv = cv2.cvtColor(face_np, cv2.COLOR_RGB2YUV)
         face_yuv[:, :, 0] = cv2.equalizeHist(face_yuv[:, :, 0])
-        processed_face = cv2.cvtColor(face_yuv, cv2.COLOR_YUV2BGR)
+        processed_face = cv2.cvtColor(face_yuv, cv2.COLOR_YUV2RGB)
 
         # Apply bilateral filter for smoothness
-        processed_face = cv2.bilateralFilter(processed_face, 0, 0, 0)
+        processed_face = cv2.bilateralFilter(processed_face, d=9, sigmaColor=75, sigmaSpace=75)
 
-        # Save original and processed face images
-        original_output_path = os.path.join(os.path.dirname(image_path), 'original_cropped_face.jpg')
-        processed_output_path = os.path.join(os.path.dirname(image_path), 'processed_face.jpg')
-        Image.fromarray(face_np).save(original_output_path, 'JPEG')
-        cv2.imwrite(processed_output_path, processed_face)
+        # Save the processed face
+        processed_output_path = os.path.join(
+            os.path.dirname(image_path), 'processed_face.jpg'
+        )
+        Image.fromarray(processed_face).save(processed_output_path, 'JPEG')
 
         print(f"Original face saved to: {original_output_path}", flush=True)
         print(f"Processed face saved to: {processed_output_path}", flush=True)
@@ -47,19 +55,30 @@ def detect_and_process_face(image_path):
         print(f"Error processing image: {e}", flush=True)
         return None, None
 
-def generate_embedding(image_path, model_name="GhostFaceNet"):
+
+def generate_embedding(image_path):
     try:
-        # Generate embeddings using DeepFace
-        embedding_objs = DeepFace.represent(
-            img_path=image_path,
-            model_name=model_name,
-            detector_backend='retinaface',
-            enforce_detection=True
-        )
-        return embedding_objs[0]["embedding"] if embedding_objs else None
+        # Load the image
+        image = face_recognition.load_image_file(image_path)
+
+        # Detect face locations
+        face_locations = face_recognition.face_locations(image)
+
+        if not face_locations:
+            print("No face detected! Skipping embedding generation.", flush=True)
+            return None
+
+        # Generate embedding for the first face
+        encodings = face_recognition.face_encodings(image, known_face_locations=[face_locations[0]])
+        if encodings:
+            return encodings[0].tolist()
+        else:
+            print("No encoding found for the face.", flush=True)
+            return None
     except Exception as e:
         print(f"Error generating embedding for {image_path}: {e}", flush=True)
         return None
+
 
 # Main logic
 if __name__ == '__main__':
