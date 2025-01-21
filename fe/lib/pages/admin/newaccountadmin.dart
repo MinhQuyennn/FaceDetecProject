@@ -152,7 +152,7 @@ class _NewAccAdminState extends State<NewAccAdmin> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Create Account and Member')),
+      appBar: AppBar(title: Text('Add Person')),
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Form(
@@ -280,7 +280,7 @@ class _NewAccAdminState extends State<NewAccAdmin> {
                 },
                 child: isLoading
                     ? CircularProgressIndicator(color: Colors.white)
-                    : Text('Create Account and Member'),
+                    : Text('Add new person'),
               ),
             ],
           ),

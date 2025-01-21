@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:fe/pages/manager/detailaccountmanager.dart';
-import 'package:fe/pages/manager/newaccountmanager.dart';
+import 'package:fe/pages/admin/detailaccountadmin.dart';
+import 'package:fe/pages/admin/newaccountadmin.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ManageAccmanager extends StatefulWidget {
@@ -91,68 +91,6 @@ class _ManageAccmanagerState extends State<ManageAccmanager> {
     });
   }
 
-  void _showAccountDetailsPopup(Map<String, dynamic> account) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Account Information'),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Username: ${account['username']}'),
-                Text('Member Name: ${account['member_name'] ?? 'N/A'}'),
-                Text('Role: ${account['role']}'),
-                Text('Status: ${account['status']}'),
-                Text('Email: ${account['email']}'),
-                Text('Phone: ${account['phone'] ?? 'N/A'}'),
-                Text('Address: ${account['address'] ?? 'N/A'}'),
-                Text(
-                    'Registered Face: ${_faceStatusMap[account['id'].toString()] == true ? 'Yes' : 'No'}'),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Close'),
-            ),
-            if (account['role'] != 'admin') // Check if the role is not admin
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => DetailAccountmanager(
-                        accountDetails: {
-                          'id': account['id'],
-                          'username': account['username'],
-                          'member_name': account['member_name'],
-                          'role': account['role'],
-                          'status': account['status'],
-                          'email': account['email'],
-                          'phone': account['phone'],
-                          'address': account['address'],
-                          'registeredFace':
-                          _faceStatusMap[account['id'].toString()],
-                        },
-                      ),
-                    ),
-                  );
-                },
-                child: Text('Detail'),
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-
   Widget _buildFaceStatusBadge(bool isRegistered) {
     if (isRegistered) return SizedBox.shrink();
 
@@ -192,17 +130,16 @@ class _ManageAccmanagerState extends State<ManageAccmanager> {
                   'List of Accounts',
                   style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
                 ),
-                ElevatedButton.icon(
+                ElevatedButton(
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => NewAccmanager(),
+                        builder: (context) => NewAccAdmin(),
                       ),
                     );
                   },
-                  icon: Icon(Icons.add),
-                  label: Text('New Account'),
+                  child:Icon(Icons.person_add),
                 ),
               ],
             ),
@@ -266,27 +203,53 @@ class _ManageAccmanagerState extends State<ManageAccmanager> {
                             _faceStatusMap[account['id'].toString()] ?? false;
 
                         return Card(
-                          color: isRegistered
-                              ? Colors.green[100]
-                              : Colors.red[100],
+                          color: Colors.white,
                           margin: EdgeInsets.symmetric(vertical: 10.0),
-                          child: Stack(
-                            children: [
-                              ListTile(
-                                title: Text(account['username']),
-                                subtitle: Text(
-                                  'Role: ${account['role']}\nStatus: ${account['status']}\nEmail: ${account['email']}',
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DetailAccountAdmin(
+                                    accountDetails: {
+                                      'id': account['id'],
+                                      'username': account['username'],
+                                      'member_name': account['member_name'],
+                                      'role': account['role'],
+                                      'status': account['status'],
+                                      'email': account['email'],
+                                      'phone': account['phone'],
+                                      'address': account['address'],
+                                      'registeredFace': _faceStatusMap[account['id'].toString()],
+                                    },
+                                  ),
                                 ),
-                                isThreeLine: true,
-                                trailing: IconButton(
-                                  icon: Icon(Icons.visibility),
-                                  onPressed: () {
-                                    _showAccountDetailsPopup(account);
-                                  },
+                              );
+                            },
+                            child: Stack(
+                              children: [
+                                ListTile(
+                                  title: Text(account['username']),
+                                  subtitle: Text(
+                                    'Role: ${account['role']}\nStatus: ${account['status']}\nEmail: ${account['email']}',
+                                  ),
+                                  isThreeLine: true,
                                 ),
-                              ),
-                              _buildFaceStatusBadge(isRegistered),
-                            ],
+                                _buildFaceStatusBadge(isRegistered),
+                                Positioned(
+                                  bottom: 5,
+                                  right: 5,
+                                  child: Icon(
+                                    account['status'] == 'able'
+                                        ? Icons.check_circle
+                                        : Icons.cancel,
+                                    color: account['status'] == 'able'
+                                        ? Colors.green
+                                        : Colors.red,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       },
@@ -305,59 +268,5 @@ class _ManageAccmanagerState extends State<ManageAccmanager> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-}
-
-class AccountDetailPage extends StatelessWidget {
-  final String accountId;
-  final String memberId;
-
-  const AccountDetailPage({
-    Key? key,
-    required this.accountId,
-    required this.memberId,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Account Details'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'List of Accounts',
-                  style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => NewAccmanager(),
-                      ),
-                    );
-                  },
-                  icon: Icon(Icons.add),
-                  label: Text('New Account'),
-                ),
-              ],
-            ),
-            SizedBox(height: 20.0),
-            Text('Account ID: $accountId'),
-            SizedBox(height: 10.0),
-            Text('Member ID: $memberId'),
-            SizedBox(height: 20.0),
-          ],
-        ),
-      ),
-    );
   }
 }

@@ -6,7 +6,7 @@ const getAllPositions = async (req, res) => {
         const [rows] = await db.promise().query('SELECT * FROM tbl_position');
         res.status(200).json({
             success: true,
-            data: rows
+            data: rows  
         });  
     } catch (error) {
         console.error('Error fetching positions:', error);
@@ -15,7 +15,7 @@ const getAllPositions = async (req, res) => {
             message: 'An error occurred while fetching positions.'
         });
     }
-};
+}; 
 
 const insertPosition = async (req, res) => {
     try {

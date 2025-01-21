@@ -4,7 +4,8 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+import 'package:intl/intl.dart';
+import 'dart:async';
 
 class HistoryAdmin extends StatefulWidget {
   const HistoryAdmin({Key? key}) : super(key: key);
@@ -18,13 +19,36 @@ class _HistoryAdminState extends State<HistoryAdmin> {
   final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
   List<Map<String, String>> _historyData = [];
+  List<Map<String, String>> _filteredHistoryData = [];
   bool _isLoading = true;
   String? _errorMessage;
+  TextEditingController _searchController = TextEditingController();
+  DateTimeRange? _selectedDateRange;
+  Timer? _timer;
+  bool _isFetching = false;
+
 
   @override
   void initState() {
     super.initState();
     _fetchHistoryData();
+    _startAutoReload();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _searchController.dispose(); // Dispose the controller as well
+    super.dispose();
+  }
+
+
+  void _startAutoReload() {
+    _timer = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (!_isFetching) {
+        _fetchHistoryData();
+      }
+    });
   }
 
   String _getUpdatedImageUrl(String imageUrl) {
@@ -34,61 +58,18 @@ class _HistoryAdminState extends State<HistoryAdmin> {
     return imageUrl;
   }
 
-  Future<void> _fetchHistoryData() async {
-    final String apiUrl = "$apiBaseUrl/getAllHistories";
-
+  String _formatDateTime(String dateTime) {
     try {
-      final response = await http.get(Uri.parse(apiUrl));
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body)['data'];
-
-        if (data.isNotEmpty) {
-          List<Map<String, String>> historyData = [];
-          for (var item in data) {
-            final String? faceImageUrl = item['face_image'];
-            final String? historyId = item['id'].toString();
-            final String? accountId = item['account_id'];
-            final String? enterAt = item['enter_at'];
-
-            if (faceImageUrl != null && historyId != null && accountId != null && enterAt != null) {
-              historyData.add({
-                'id': historyId,
-                'account_id': accountId,
-                'enter_at': enterAt,
-                'url': _getUpdatedImageUrl(faceImageUrl),
-              });
-            }
-          }
-
-          setState(() {
-            _historyData = historyData;
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _errorMessage = 'No valid history data found.';
-            _isLoading = false;
-          });
-        }
-      } else if (response.statusCode == 404) {
-        setState(() {
-          _errorMessage = 'No history records found.';
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _errorMessage = 'Failed to fetch history data.';
-          _isLoading = false;
-        });
-      }
+      DateTime parsedDate = DateTime.parse(dateTime).toLocal();
+      return "${parsedDate.day.toString().padLeft(2, '0')}/"
+          "${parsedDate.month.toString().padLeft(2, '0')}/"
+          "${parsedDate.year} "
+          "${parsedDate.hour.toString().padLeft(2, '0')}:"
+          "${parsedDate.minute.toString().padLeft(2, '0')}";
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Error fetching history data: $e';
-        _isLoading = false;
-      });
+      return dateTime;
     }
   }
-
   Future<void> _deleteHistory(String historyId) async {
     final String deleteApiUrl = "$apiBaseUrl/deleteHistories/$historyId";
 
@@ -112,7 +93,6 @@ class _HistoryAdminState extends State<HistoryAdmin> {
       );
     }
   }
-
   void _showDeleteConfirmationDialog(String historyId) {
     showDialog(
       context: context,
@@ -123,14 +103,14 @@ class _HistoryAdminState extends State<HistoryAdmin> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
               child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-                _deleteHistory(historyId); // Call the delete method
+                Navigator.of(context).pop();
+                _deleteHistory(historyId);
               },
               child: const Text('Delete', style: TextStyle(color: Colors.red)),
             ),
@@ -139,24 +119,241 @@ class _HistoryAdminState extends State<HistoryAdmin> {
       },
     );
   }
+  Future<void> _fetchHistoryData() async {
+    if (_isFetching) return; // Prevent overlapping fetches
+    _isFetching = true;
 
+    final String apiUrl = "$apiBaseUrl/getAllHistories";
+
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body)['data'];
+
+        if (data.isNotEmpty) {
+          List<Map<String, String>> historyData = [];
+          for (var item in data) {
+            final String? faceImageUrl = item['face_image'];
+            final String? historyId = item['id'].toString();
+            final String? accountId = item['account_id'];
+            final String? enterAt = item['enter_at'];
+
+            if (faceImageUrl != null && historyId != null && accountId != null && enterAt != null) {
+              historyData.add({
+                'id': historyId,
+                'account_id': accountId,
+                'enter_at': enterAt,
+                'url': _getUpdatedImageUrl(faceImageUrl),
+                'name': item['name'] ?? '', // Add name if available
+              });
+            }
+          }
+
+          historyData.sort((a, b) {
+            DateTime dateA = DateTime.parse(a['enter_at']!);
+            DateTime dateB = DateTime.parse(b['enter_at']!);
+            return dateB.compareTo(dateA);
+          });
+
+          setState(() {
+            _historyData = historyData.map((item) {
+              item['enter_at'] = _formatDateTime(item['enter_at']!);
+              return item;
+            }).toList();
+
+            // Reapply filters after fetching new data
+            _applyFilters();
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _errorMessage = 'No valid history data found.';
+            _isLoading = false;
+          });
+        }
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to fetch history data.';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error fetching history data: $e';
+        _isLoading = false;
+      });
+    } finally {
+      _isFetching = false; // Ensure this is set back to false
+    }
+  }
+
+
+
+  void _applyFilters() {
+    String searchQuery = _searchController.text.trim().toLowerCase();
+    DateTime? startDate = _selectedDateRange?.start;
+    DateTime? endDate = _selectedDateRange?.end;
+
+    setState(() {
+      _filteredHistoryData = _historyData.where((record) {
+        bool matchesAccountIdOrName = searchQuery.isEmpty ||
+            record['account_id']!.toLowerCase().contains(searchQuery) ||
+            (record['name']?.toLowerCase().contains(searchQuery) ?? false);
+
+        bool matchesDateTime = true;
+
+        if (startDate != null && endDate != null) {
+          try {
+            DateTime enterAtDateTime = DateFormat("dd/MM/yyyy HH:mm").parse(record['enter_at']!);
+            matchesDateTime = enterAtDateTime.isAfter(startDate) &&
+                enterAtDateTime.isBefore(endDate);
+          } catch (e) {
+            matchesDateTime = false;
+          }
+        }
+
+        return matchesAccountIdOrName && matchesDateTime;
+      }).toList();
+    });
+  }
+
+  Future<void> _pickDateTimeRange() async {
+    // Pick Start Date
+    final DateTime? pickedStartDate = await showDatePicker(
+      context: context,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+      initialDate: DateTime.now(),
+      helpText: 'Select Start Date', // Title for the date picker
+    );
+
+    if (pickedStartDate == null) return;
+
+    // Pick Start Time
+    final TimeOfDay? pickedStartTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      helpText: 'Select Start Time', // Title for the time picker
+    );
+
+    if (pickedStartTime == null) return;
+
+    // Combine Start Date and Time
+    final DateTime startDateTime = DateTime(
+      pickedStartDate.year,
+      pickedStartDate.month,
+      pickedStartDate.day,
+      pickedStartTime.hour,
+      pickedStartTime.minute,
+    );
+
+    // Pick End Date
+    final DateTime? pickedEndDate = await showDatePicker(
+      context: context,
+      firstDate: pickedStartDate,
+      lastDate: DateTime.now(),
+      initialDate: pickedStartDate.add(const Duration(days: 1)),
+      helpText: 'Select End Date', // Title for the date picker
+    );
+
+    if (pickedEndDate == null) return;
+
+    // Pick End Time
+    final TimeOfDay? pickedEndTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      helpText: 'Select End Time', // Title for the time picker
+    );
+
+    if (pickedEndTime == null) return;
+
+    // Combine End Date and Time
+    final DateTime endDateTime = DateTime(
+      pickedEndDate.year,
+      pickedEndDate.month,
+      pickedEndDate.day,
+      pickedEndTime.hour,
+      pickedEndTime.minute,
+    );
+
+    // Validate the selected date-time range
+    if (endDateTime.isBefore(startDateTime)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('End time must be after start time.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _selectedDateRange = DateTimeRange(start: startDateTime, end: endDateTime);
+    });
+
+    _applyFilters();
+  }
+
+
+
+  void _showFullImageDialog(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          child: InteractiveViewer(
+            panEnabled: true,
+            child: Image.network(
+              imageUrl,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(
+                  Icons.broken_image,
+                  size: 200,
+                  color: Colors.grey,
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Histories'),
-        automaticallyImplyLeading: false,
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(10.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'History Records',
-              style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      labelText: 'Search by Account ID or Name',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                    onChanged: (value) {
+                      _applyFilters();
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton.icon(
+                  onPressed: _pickDateTimeRange,
+                  icon: const Icon(Icons.date_range),
+                  label: const Text('Filter'),
+                ),
+
+              ],
             ),
-            const SizedBox(height: 10.0),
+            const SizedBox(height: 10),
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _errorMessage != null
@@ -164,131 +361,80 @@ class _HistoryAdminState extends State<HistoryAdmin> {
               _errorMessage!,
               style: const TextStyle(color: Colors.red),
             )
-                : _historyData.isNotEmpty
-                ? Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: _historyData.map((data) {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Left-hand side: Account ID, ID, and Enter At
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Account ID: ${data['account_id']}',
-                                style: const TextStyle(
-                                    fontSize: 14.0, fontWeight: FontWeight.bold),
-                              ),
-                              Text('ID: ${data['id']}'),
-                              Text('Enter At: ${data['enter_at']}'),
-                              const SizedBox(height: 5.0),
-                              ElevatedButton(
-                                onPressed: () {
-                                  _showDeleteConfirmationDialog(data['id']!);
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white, // Make the background transparent
-                                  side: BorderSide(color: Colors.blue), // Blue border
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(5.0), // Optional: rounded corners
-                                  ),
-                                  padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0), // Slimmer padding
-                                ),
-                                child: Text(
-                                  'Delete',
-                                  style: TextStyle(
-                                    color: Colors.blue, // Blue text color
+                : Expanded(
+              child: ListView.builder(
+                itemCount: _filteredHistoryData.length,
+                itemBuilder: (context, index) {
+                  final data = _filteredHistoryData[index];
+                  return Card(
+                    elevation: 4,
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'ID: ${data['account_id']}',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 20.0),
-
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 20.0),
-                        // Right-hand side: Image
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => FullImagePage(
-                                  imageUrl: data['url']!,
-                                  historyId: data['id']!,
-                                ),
-                              ),
-                            );
-                          },
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8.0),
-                            child: Image.network(
-                              data['url']!,
-                              width: 100,
-                              height: 100,
-                              fit: BoxFit.cover,
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return Center(
-                                  child: CircularProgressIndicator(
-                                    value: loadingProgress.expectedTotalBytes != null
-                                        ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                        : null,
+                                Text(
+                                  'Name: ${data['name']}',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Icon(
-                                  Icons.broken_image,
-                                  size: 100,
-                                  color: Colors.grey,
-                                );
-                              },
+                                ),
+                                Text('Enter At: ${data['enter_at']}'),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                ),
+                          GestureDetector(
+                            onTap: () {
+                              _showFullImageDialog(data['url']!);
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                data['url']!,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(
+                                    Icons.broken_image,
+                                    size: 80,
+                                    color: Colors.grey,
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              _showDeleteConfirmationDialog(data['id']!);
+                              icon: Icon(Icons.delete, color: Colors.red);
+                              label: const Text('Delete', style: TextStyle(color: Colors.red));
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-            )
-                : const Text(
-              'No history records available.',
-              style: TextStyle(color: Colors.grey),
             ),
           ],
         ),
       ),
     );
   }
-}
 
-class FullImagePage extends StatelessWidget {
-  final String imageUrl;
-  final String historyId;
-
-  const FullImagePage({Key? key, required this.imageUrl, required this.historyId}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Full Image - ID: $historyId'),
-      ),
-      body: Center(
-        child: Image.network(
-          imageUrl,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) {
-            return const Icon(Icons.broken_image, size: 100);
-          },
-        ),
-      ),
-    );
-  }
 }

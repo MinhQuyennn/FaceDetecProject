@@ -160,10 +160,71 @@ const getAccByFilter = async (req, res) => {
     });
 };
 
+const AccStatistics = (req, res) => {
+    try {
+        const totalAccountsQuery = `
+            SELECT COUNT(*) AS total FROM tbl_account;
+        `;
+        const enabledAccountsQuery = `
+            SELECT COUNT(*) AS enabled FROM tbl_account WHERE status = 'able';
+        `;
+        const registeredFaceAccountsQuery = `
+            SELECT COUNT(DISTINCT a.username) AS registered
+            FROM tbl_account a
+            JOIN tbl_member m ON a.username = m.account_id
+            JOIN tbl_register_faces r ON m.id = r.member_id;
+        `;
+
+        // Initialize result object
+        let statistics = {
+            totalAccounts: 0,
+            enabledAccounts: 0,
+            registeredFaceAccounts: 0,
+        };
+
+        // Execute the first query
+        db.query(totalAccountsQuery, (err, totalResult) => {
+            if (err) {
+                console.error("Error fetching total accounts:", err);
+                return res.status(500).json({ error: "Failed to fetch account statistics" });
+            }
+
+            statistics.totalAccounts = totalResult[0]?.total || 0;
+
+            // Execute the second query
+            db.query(enabledAccountsQuery, (err, enabledResult) => {
+                if (err) {
+                    console.error("Error fetching enabled accounts:", err);
+                    return res.status(500).json({ error: "Failed to fetch account statistics" });
+                }
+
+                statistics.enabledAccounts = enabledResult[0]?.enabled || 0;
+
+                // Execute the third query
+                db.query(registeredFaceAccountsQuery, (err, registeredResult) => {
+                    if (err) {
+                        console.error("Error fetching registered face accounts:", err);
+                        return res.status(500).json({ error: "Failed to fetch account statistics" });
+                    }
+
+                    statistics.registeredFaceAccounts = registeredResult[0]?.registered || 0;
+
+                    // Send the response
+                    return res.status(200).json(statistics);
+                });
+            });
+        });
+    } catch (error) {
+        console.error("Error fetching account statistics:", error);
+        res.status(500).json({ error: "Failed to fetch account statistics" });
+    }
+}
+
 
 module.exports = {
     getAccount,
     getAllInforAcc,
     updateaccountusername,
-    getAccountById
+    getAccountById,
+    AccStatistics
 };

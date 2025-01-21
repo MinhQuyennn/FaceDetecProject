@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:fe/pages/manager/addimagemanager.dart';
+import 'package:fe/pages/admin/addimageadmin.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class NewAccmanager extends StatefulWidget {
@@ -25,7 +25,7 @@ class _NewAccmanagerState extends State<NewAccmanager> {
   final TextEditingController phoneNumberController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
 
-  String role = 'staff'; // Set role to 'staff'
+  String role = 'admin';
   String status = '';
   String positionId = '';
   bool isLoading = false;
@@ -80,7 +80,6 @@ class _NewAccmanagerState extends State<NewAccmanager> {
       );
     }
   }
-
   Future<void> createAccountAndMember() async {
     setState(() => isLoading = true);
 
@@ -153,7 +152,7 @@ class _NewAccmanagerState extends State<NewAccmanager> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Create Account and Member')),
+      appBar: AppBar(title: Text('Add Person')),
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Form(
@@ -164,7 +163,7 @@ class _NewAccmanagerState extends State<NewAccmanager> {
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               SizedBox(height: 20),
               TextFormField(
-                controller: usernameController,
+                controller: usernameController, // Use controller
                 decoration: InputDecoration(labelText: 'Username'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -177,7 +176,7 @@ class _NewAccmanagerState extends State<NewAccmanager> {
                 },
               ),
               TextFormField(
-                controller: passwordController,
+                controller: passwordController, // Use controller
                 decoration: InputDecoration(labelText: 'Password'),
                 obscureText: true,
                 validator: (value) {
@@ -201,11 +200,22 @@ class _NewAccmanagerState extends State<NewAccmanager> {
                     .toList(),
                 onChanged: (value) => setState(() => status = value!),
               ),
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(labelText: 'Role'),
+                value: role,
+                items: ['admin', 'manager', 'staff']
+                    .map((role) => DropdownMenuItem(
+                  value: role,
+                  child: Text(role),
+                ))
+                    .toList(),
+                onChanged: (value) => setState(() => role = value!),
+              ),
               SizedBox(height: 20),
               Text('Member Information',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               TextFormField(
-                controller: nameController,
+                controller: nameController, // Use controller
                 decoration: InputDecoration(labelText: 'Name'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -232,11 +242,11 @@ class _NewAccmanagerState extends State<NewAccmanager> {
                 },
               ),
               TextFormField(
-                controller: addressController,
+                controller: addressController, // Use controller
                 decoration: InputDecoration(labelText: 'Address'),
               ),
               TextFormField(
-                controller: phoneNumberController,
+                controller: phoneNumberController, // Use controller
                 decoration: InputDecoration(labelText: 'Phone Number'),
                 keyboardType: TextInputType.number,
                 validator: (value) {
@@ -250,7 +260,7 @@ class _NewAccmanagerState extends State<NewAccmanager> {
                 },
               ),
               TextFormField(
-                controller: emailController,
+                controller: emailController, // Use controller
                 decoration: InputDecoration(labelText: 'Email'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {

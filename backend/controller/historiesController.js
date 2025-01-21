@@ -63,7 +63,7 @@ const createEnterHistory = async (req, res) => {
         console.error("Error creating entry history:", error);
         res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
-};
+};   
 
 const deleteHistories = (req, res) => {
     try {
@@ -80,7 +80,7 @@ const deleteHistories = (req, res) => {
                 return res.status(500).json({ message: "Internal Server Error" });
             }
 
-            if (!rows.length) {
+            if (!rows.length) { 
                 return res.status(404).json({ message: "History record not found" });
             }
 
@@ -127,7 +127,34 @@ const deleteHistories = (req, res) => {
 const getAllHistories = (req, res) => {
     try {
         // Query to fetch all records from tbl_enter_history
-        db.query("SELECT h.id,h.enter_at,h.member_id,h.face_image,m.account_id FROM tbl_enter_history h JOIN tbl_member m ON h.member_id = m.id", (err, rows) => {
+        db.query("SELECT h.id,h.enter_at,h.member_id,h.face_image,m.account_id, m.name FROM tbl_enter_history h JOIN tbl_member m ON h.member_id = m.id", (err, rows) => {
+            if (err) {
+                console.error("Error querying the database:", err);
+                return res.status(500).json({ message: "Internal Server Error" });
+            }
+
+            // Check if no data is found
+            if (!rows.length) {
+                return res.status(404).json({ message: "No history records found" });
+            }
+
+            // Respond with all data
+            res.status(200).json({
+                message: "History records retrieved successfully",
+                data: rows,
+            });
+        });
+    } catch (error) {
+        console.error("Unexpected error:", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};
+
+
+const getHistories = (req, res) => {
+    try {
+        // Query to fetch all records from tbl_enter_history
+        db.query("SELECT * FROM tbl_enter_history", (err, rows) => {
             if (err) {
                 console.error("Error querying the database:", err);
                 return res.status(500).json({ message: "Internal Server Error" });
@@ -156,10 +183,26 @@ const getHistoriesByMemberId = (req, res) => {
 
         if (!id) {
             return res.status(400).json({ message: "Member ID is required!" });
-        }
+        } 
 
-        // Query to fetch records from tbl_enter_history by member_id
-        db.query("SELECT * FROM tbl_enter_history WHERE member_id = ?", [id], (err, rows) => {
+        // Query to fetch records from tbl_enter_history by member_id and join with tbl_member
+        const query = `
+            SELECT 
+                eh.id AS entry_id,
+                eh.enter_at,
+                eh.face_image,
+                m.id AS member_id,
+                m.name,
+                m.position_id,
+                m.address,
+                m.phone_number,
+                m.email
+            FROM tbl_enter_history eh
+            JOIN tbl_member m ON eh.member_id = m.id
+            WHERE eh.member_id = ?
+        `;
+
+        db.query(query, [id], (err, rows) => {
             if (err) {
                 console.error("Error querying the database:", err);
                 return res.status(500).json({ message: "Internal Server Error" });
@@ -183,9 +226,89 @@ const getHistoriesByMemberId = (req, res) => {
 };
 
 
+const moment = require('moment-timezone');
+
+const HisStatistics = (req, res) => {
+    try {
+        // Get current date in Vietnam Time (GMT+7)
+        const vietnamTime = moment().tz("Asia/Ho_Chi_Minh");
+
+        // Set start of the day to 12:00 AM Vietnam Time
+        const startOfDayVN = vietnamTime.clone().startOf('day'); // Set to 12:00 AM
+
+        // Set end of the day to 11:59:59 PM Vietnam Time
+        const endOfDayVN = vietnamTime.clone().endOf('day'); // Set to 11:59:59 PM
+
+        // Convert to MySQL datetime format
+        const startOfDay = startOfDayVN.format('YYYY-MM-DD HH:mm:ss');
+        const endOfDay = endOfDayVN.format('YYYY-MM-DD HH:mm:ss');
+
+        console.log("Start of Day (Vietnam Time):", startOfDay);
+        console.log("End of Day (Vietnam Time):", endOfDay);
+
+        const totalEntriesQuery = `
+            SELECT COUNT(*) AS total FROM tbl_enter_history
+            WHERE enter_at BETWEEN ? AND ?;
+        `;
+        const importerEntriesQuery = `
+            SELECT COUNT(*) AS importers FROM tbl_enter_history
+            WHERE member_id = -1 AND enter_at BETWEEN ? AND ?;
+        `;
+
+        // Initialize result object
+        let statistics = {
+            totalEntries: 0,
+            totalImporters: 0,
+        };
+
+        // Execute the first query
+        db.query(totalEntriesQuery, [startOfDay, endOfDay], (err, totalResult) => {
+            if (err) {
+                console.error("Error fetching total entries:", err);
+                return res.status(500).json({ error: "Failed to fetch history statistics" });
+            }
+
+            console.log("Total Entries Result:", totalResult);
+
+            statistics.totalEntries = totalResult[0]?.total || 0;
+
+            // Execute the second query
+            db.query(importerEntriesQuery, [startOfDay, endOfDay], (err, importerResult) => {
+                if (err) {
+                    console.error("Error fetching importer entries:", err);
+                    return res.status(500).json({ error: "Failed to fetch history statistics" });
+                }
+
+                console.log("Importer Entries Result:", importerResult);
+
+                statistics.totalImporters = importerResult[0]?.importers || 0;
+
+                // Send the response
+                console.log("Sending Response:", statistics);
+                return res.status(200).json(statistics);
+            });
+        });
+    } catch (error) {
+        console.error("Error fetching history statistics:", error);
+        res.status(500).json({ error: "Failed to fetch history statistics" });
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
 module.exports = { 
     createEnterHistory,
     deleteHistories,
     getAllHistories,
-    getHistoriesByMemberId
+    getHistoriesByMemberId,
+    HisStatistics,
+    getHistories
 };

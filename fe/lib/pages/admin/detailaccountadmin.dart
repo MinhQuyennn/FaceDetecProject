@@ -103,7 +103,7 @@ class _DetailAccountAdminState extends State<DetailAccountAdmin> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Account Details: ${widget.accountDetails['username']}'),
+        title: Text('Person: ${widget.accountDetails['username']}'),
       ),
       body: SingleChildScrollView( // Wrap entire content in a scrollable area
         child: Padding(
@@ -111,7 +111,7 @@ class _DetailAccountAdminState extends State<DetailAccountAdmin> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Account Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('Account Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 value: _selectedStatus,
@@ -149,7 +149,7 @@ class _DetailAccountAdminState extends State<DetailAccountAdmin> {
                 obscureText: true,
               ),
               SizedBox(height: 20),
-              Text('Member Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('Member Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 10),
               TextFormField(
                 controller: _nameController,
@@ -173,19 +173,21 @@ class _DetailAccountAdminState extends State<DetailAccountAdmin> {
                 child: Text('Update'),
               ),
 
-              Text('Image Detail', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              SizedBox(height: 10),
-              Text('Registered Face: ${widget.accountDetails['registeredFace'] ?? 'N/A'}'),
-
-              Container(
-                height: 300, // Adjust this height as needed
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: 200,
+                  maxHeight: 600, // Limit the maximum height
+                ),
                 child: FetchFaceImagesPage(
                   memberId: widget.accountDetails['id'].toString(),
                 ),
               ),
               SizedBox(height: 20),
-              Container(
-                height: 300, // Adjust this height as needed
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: 200,
+                  maxHeight: 550, // Limit the maximum height
+                ),
                 child: InsertImage(
                   memberId: widget.accountDetails['id'].toString(),
                 ),

@@ -9,47 +9,68 @@ const { exec } = require("child_process");
 function base64ToVector(base64) {
     const vector = Array.from({ length: 128 }, () => Math.random().toFixed(6)); // Mock 128-dimension vector
     return vector;  
-}
+} 
  
 const detectFaceAndProcess = (base64Image) => {
   return new Promise((resolve, reject) => {
       console.log("[DEBUG] Starting detectFaceAndProcess...");
 
-      const tempFile = path.join(__dirname, 'temp_image.jpg');
-      const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
-      console.log(`[DEBUG] Writing temp image to: ${tempFile}`);
-      fs.writeFileSync(tempFile, Buffer.from(base64Data, 'base64'));
+      try {
+          const tempFile = path.join(__dirname, 'temp_image.jpg');
+          const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
+          console.log(`[DEBUG] Writing temp image to: ${tempFile}`);
+          fs.writeFileSync(tempFile, Buffer.from(base64Data, 'base64'));
+ 
+          const command = `python E:\\.kltn\\source_code\\backend\\model\\face_crop.py ${tempFile}`;
+          console.log(`[DEBUG] Running command: ${command}`);
+          exec(command, (error, stdout, stderr) => {
+              console.log("[DEBUG] Python script execution completed.");
 
-      const command = `python E:\\.kltn\\source_code\\backend\\model\\face_crop.py ${tempFile}`;
-      console.log(`[DEBUG] Running command: ${command}`); 
-      exec(command, (error, stdout, stderr) => {
-          if (error) {
-              console.error(`[ERROR] Python script execution failed: ${stderr}`);
-              return reject("Error processing face image.");
-          }
+              console.log("[DEBUG] Python script output:");
+              console.log(stdout);
 
-          console.log("[DEBUG] Python script output received.");
+              const originalMatch = stdout.match(/Original path:\s([^\n]+)/);
+              const processedMatch = stdout.match(/Processed path:\s([^\n]+)/);
+              const originalEmbeddingMatch = stdout.match(/Original embedding:\s([^\n]+)/);
+              const processedEmbeddingMatch = stdout.match(/Processed embedding:\s([^\n]+)/);
 
-          const originalMatch = stdout.match(/Original path:\s([^\n]+)/);
-          const processedMatch = stdout.match(/Processed path:\s([^\n]+)/);
-          const originalEmbeddingMatch = stdout.match(/Original embedding:\s([^\n]+)/);
-          const processedEmbeddingMatch = stdout.match(/Processed embedding:\s([^\n]+)/);
+              console.log("[DEBUG] Parsing script output...");
+              console.log(`[DEBUG] Original path match: ${originalMatch}`);
+              console.log(`[DEBUG] Processed path match: ${processedMatch}`);
+              console.log(`[DEBUG] Original embedding match: ${originalEmbeddingMatch}`);
+              console.log(`[DEBUG] Processed embedding match: ${processedEmbeddingMatch}`);
 
-          if (originalMatch && processedMatch && originalEmbeddingMatch && processedEmbeddingMatch) {
-              console.log("[DEBUG] Successfully parsed Python script output.");
-              resolve({
-                  originalPath: originalMatch[1].trim(),
-                  processedPath: processedMatch[1].trim(),
-                  originalEmbedding: JSON.parse(originalEmbeddingMatch[1]),
-                  processedEmbedding: JSON.parse(processedEmbeddingMatch[1]),
-              });
-          } else {
-              console.error("[ERROR] Failed to parse Python script output.");
-              reject("Face not processed correctly.");
-          }
-      });
+              if (originalMatch && processedMatch && originalEmbeddingMatch && processedEmbeddingMatch) {
+                  console.log("[DEBUG] Successfully parsed Python script output.");
+
+                  const originalEmbedding = JSON.parse(originalEmbeddingMatch[1]);
+                  const processedEmbedding = JSON.parse(processedEmbeddingMatch[1]);
+
+                  // Check if either embedding is null
+                  if (!originalEmbedding || !processedEmbedding) {
+                      console.error("[ERROR] Embedding vector is null. Face embedding failed.");
+                      return reject("Embedding vector is null. Ensure the face is clearly visible and try again.");
+                  }
+
+                  console.log("[DEBUG] Embeddings successfully retrieved.");
+                  resolve({
+                      originalPath: originalMatch[1].trim(),
+                      processedPath: processedMatch[1].trim(),
+                      originalEmbedding: originalEmbedding,
+                      processedEmbedding: processedEmbedding,
+                  });
+              } else {
+                  console.error("[ERROR] Failed to parse Python script output.");
+                  reject("Face not processed correctly.");
+              }
+          });
+      } catch (err) {
+          console.error(`[ERROR] Exception occurred: ${err.message}`);
+          reject("An unexpected error occurred.");
+      }
   });
-};
+};  
+
 
 const createRegisterFace = async (req, res) => {
   try {
@@ -183,17 +204,20 @@ const getImageByID = async (req, res) => {
 
 const getAllDataWithUsername = async (req, res) => {
   try {
-    // Query to get all data from tbl_register_faces and join with tbl_account to get the username
+    // Query to get all data from tbl_register_faces and join with tbl_member to get the username
     const query = `
       SELECT 
-        r.member_id, 
-        r.face_image, 
-        r.image_vector, 
-        r.face_image_process, 
-        r.image_vector_process,
-        m.account_id
-      FROM tbl_register_faces r
-      LEFT JOIN tbl_member m ON r.id = m.id
+    r.id AS register_face_id,
+    r.member_id, 
+    r.face_image, 
+    r.image_vector, 
+    r.face_image_process, 
+    r.image_vector_process,
+    m.account_id AS username,
+    a.status
+    FROM tbl_register_faces r
+    LEFT JOIN tbl_member m ON r.member_id = m.id
+    LEFT JOIN tbl_account a ON m.account_id = a.username;
     `;
     const [results] = await db.promise().query(query);
 
@@ -203,20 +227,28 @@ const getAllDataWithUsername = async (req, res) => {
 
     // Prepare response data by mapping over all rows
     const response = results.map(row => {
-      let parsedVector;
-      try {
-        parsedVector = Array.isArray(row.image_vector) ? row.image_vector : JSON.parse(row.image_vector);
-      } catch (error) {
-        console.error('Error parsing image_vector:', error);
-        throw new Error('Failed to process image_vector');
+      let parsedVector = null;
+
+      // Safely parse image_vector
+      if (row.image_vector) {
+        try {
+          parsedVector = Array.isArray(row.image_vector)
+            ? row.image_vector
+            : JSON.parse(row.image_vector);
+        } catch (error) {
+          console.error(`Error parsing image_vector for ID ${row.register_face_id}:`, error);
+        }
       }
+
       return {
-        id: row.id,
-        face_image_url: row.face_image,
-        image_vector: parsedVector,
-        face_image_process: row.face_image_process,
-        image_vector_process: row.image_vector_process,
-        username: row.account_id // Add username to the response
+        id: row.register_face_id, // Unique ID for the register face
+        member_id: row.member_id,
+        status: row.status,
+        username: row.username, // Username from the member table
+        face_image_url: row.face_image, // Face image URL
+        image_vector: parsedVector, // Parsed or null
+        face_image_process: row.face_image_process, // Face processing image URL
+        image_vector_process: row.image_vector_process, // Processed vector data
       };
     });
 
@@ -227,6 +259,7 @@ const getAllDataWithUsername = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 
 
@@ -294,7 +327,7 @@ const deleteRegisterFace = (req, res) => {
   };
 
 
-
+  
 const getFaceRegistrationStats = async (req, res) => {
     try {
         const queryRegistered = `

@@ -189,15 +189,15 @@ class _FetchFaceImagesPageState extends State<FetchFaceImagesPage> {
 
 
 class FullImagePage extends StatelessWidget {
+  final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
   final String imageUrl;
   final String imageId;
 
-  const FullImagePage({Key? key, required this.imageUrl, required this.imageId})
+  FullImagePage({Key? key, required this.imageUrl, required this.imageId})
       : super(key: key);
 
   Future<void> _deleteImage(BuildContext context, String imageId) async {
-    final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
-
     try {
       final url = Uri.parse('$apiBaseUrl/delete-face/$imageId');
 
@@ -274,5 +274,4 @@ class FullImagePage extends StatelessWidget {
     );
   }
 }
-
 

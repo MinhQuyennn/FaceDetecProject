@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Import for secure storage
+import 'package:intl/intl.dart';
 
 class Historystaff extends StatefulWidget {
   const Historystaff({Key? key}) : super(key: key);
-
   static String routeName = "/history_staff";
 
   @override
@@ -17,11 +16,14 @@ class Historystaff extends StatefulWidget {
 
 class _HistorystaffScreenState extends State<Historystaff> {
   final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
+  final _storage = const FlutterSecureStorage(); // Secure storage instance
 
-  final _storage = const FlutterSecureStorage();
   List<Map<String, String>> _historyData = [];
+  List<Map<String, String>> _filteredHistoryData = [];
   bool _isLoading = true;
   String? _errorMessage;
+  TextEditingController _searchController = TextEditingController();
+  DateTimeRange? _selectedDateRange;
 
   @override
   void initState() {
@@ -36,8 +38,20 @@ class _HistorystaffScreenState extends State<Historystaff> {
     return imageUrl;
   }
 
-  Future<void> _fetchHistoryData() async {
+  String _formatDateTime(String dateTime) {
+    try {
+      DateTime parsedDate = DateTime.parse(dateTime).toLocal();
+      return "${parsedDate.day.toString().padLeft(2, '0')}/"
+          "${parsedDate.month.toString().padLeft(2, '0')}/"
+          "${parsedDate.year} "
+          "${parsedDate.hour.toString().padLeft(2, '0')}:"
+          "${parsedDate.minute.toString().padLeft(2, '0')}";
+    } catch (e) {
+      return dateTime;
+    }
+  }
 
+  Future<void> _fetchHistoryData() async {
     final String getAccountApi = "$apiBaseUrl/getAccountById/";
     final String getHistoriesApi = "$apiBaseUrl/getHistoriesByMemberId/";
 
@@ -51,14 +65,12 @@ class _HistorystaffScreenState extends State<Historystaff> {
           _errorMessage = 'Username not found in storage.';
           _isLoading = false;
         });
-        print("Error: Username is empty");
         return;
       }
 
       // Get Member ID using username
       final accountResponse = await http.get(Uri.parse('$getAccountApi$username'));
-      print("Account API response status: ${accountResponse.statusCode}");
-      print("Account API response body: ${accountResponse.body}");
+      print("Account API Response: ${accountResponse.body}");
 
       if (accountResponse.statusCode != 200) {
         setState(() {
@@ -70,54 +82,52 @@ class _HistorystaffScreenState extends State<Historystaff> {
 
       final accountData = jsonDecode(accountResponse.body);
       final String memberId = accountData['accountInfo']['id'].toString();
-      print("Fetched member ID: $memberId");
+      print("Fetched Member ID: $memberId");
 
       // Get history by Member ID
       final historyResponse = await http.get(Uri.parse('$getHistoriesApi$memberId'));
-      print("History API response status: ${historyResponse.statusCode}");
-      print("History API response body: ${historyResponse.body}");
+      print("History API Response: ${historyResponse.body}");
 
       if (historyResponse.statusCode != 200) {
         setState(() {
-          _errorMessage = 'No history records.';
+          _errorMessage = 'Failed to fetch history records.';
           _isLoading = false;
         });
         return;
       }
 
       final List<dynamic> data = jsonDecode(historyResponse.body)['data'];
-      print("Fetched history data: $data");
+      print("History Data: $data");
 
       if (data.isNotEmpty) {
         List<Map<String, String>> historyData = [];
         for (var item in data) {
           final String? faceImageUrl = item['face_image'];
           final String? historyId = item['id']?.toString();
-          final String? memberId = item['member_id']?.toString();
           final String? enterAt = item['enter_at'];
+          final String? name = item['name'];
 
-          if (faceImageUrl != null && historyId != null && memberId != null && enterAt != null) {
-            historyData.add({
-              'id': historyId,
-              'account_id': memberId, // Use member_id for account_id
-              'enter_at': enterAt,
-              'url': _getUpdatedImageUrl(faceImageUrl),
-            });
-          }
+          // Check null values and provide fallback values
+          historyData.add({
+            'id': historyId ?? '',  // Provide empty string if null
+            'account_id': memberId,
+            'name': name ?? '',  // Provide empty string if null
+            'enter_at': _formatDateTime(enterAt ?? ''),  // Provide empty string if null
+            'url': _getUpdatedImageUrl(faceImageUrl ?? ''),  // Provide empty string if null
+          });
         }
 
         setState(() {
           _historyData = historyData;
+          _filteredHistoryData = historyData;
           _isLoading = false;
         });
-        print("Successfully set history data.");
       } else {
         setState(() {
           _errorMessage = 'No history records found for this member.';
           _isLoading = false;
         });
       }
-
     } catch (e) {
       setState(() {
         _errorMessage = 'Error fetching history data: $e';
@@ -127,23 +137,69 @@ class _HistorystaffScreenState extends State<Historystaff> {
     }
   }
 
+
+  void _applyFilters() {
+    String searchQuery = _searchController.text.trim().toLowerCase();
+    DateTime? startDate = _selectedDateRange?.start;
+    DateTime? endDate = _selectedDateRange?.end;
+    DateFormat customFormat = DateFormat("dd/MM/yyyy HH:mm");
+
+    setState(() {
+      _filteredHistoryData = _historyData.where((record) {
+        bool matchesAccountId = searchQuery.isEmpty ||
+            record['account_id']!.toLowerCase().contains(searchQuery);
+        bool matchesDate = true;
+
+        if (startDate != null && endDate != null) {
+          try {
+            DateTime enterAtDate = customFormat.parse(record['enter_at']!);
+            matchesDate = enterAtDate.isAfter(startDate.subtract(Duration(days: 1))) &&
+                enterAtDate.isBefore(endDate.add(Duration(days: 1)));
+          } catch (e) {
+            matchesDate = false;
+          }
+        }
+
+        return matchesAccountId && matchesDate;
+      }).toList();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Histories'),
-        automaticallyImplyLeading: false,
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(10.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'History Records',
-              style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final DateTimeRange? picked = await showDateRangePicker(
+                      context: context,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now(),
+                      initialDateRange: _selectedDateRange,
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _selectedDateRange = picked;
+                      });
+                      _applyFilters();
+                    }
+                  },
+                  icon: Icon(Icons.date_range),
+                  label: const Text('Filter'),
+                ),
+              ],
             ),
-            const SizedBox(height: 10.0),
+            const SizedBox(height: 10),
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _errorMessage != null
@@ -151,108 +207,82 @@ class _HistorystaffScreenState extends State<Historystaff> {
               _errorMessage!,
               style: const TextStyle(color: Colors.red),
             )
-                : _historyData.isNotEmpty
-                ? Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: _historyData.map((data) {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Account ID: ${data['account_id']}',
-                                style: const TextStyle(
-                                    fontSize: 14.0, fontWeight: FontWeight.bold),
-                              ),
-                              Text('ID: ${data['id']}'),
-                              Text('Enter At: ${data['enter_at']}'),
-                              const SizedBox(height: 5.0),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 20.0),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => FullImagePage(
-                                  imageUrl: data['url']!,
-                                  historyId: data['id']!,
-                                ),
-                              ),
-                            );
-                          },
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8.0),
-                            child: Image.network(
-                              data['url']!,
-                              width: 100,
-                              height: 100,
-                              fit: BoxFit.cover,
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return Center(
-                                  child: CircularProgressIndicator(
-                                    value: loadingProgress.expectedTotalBytes != null
-                                        ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                        : null,
+                : Expanded(
+              child: ListView.builder(
+                itemCount: _filteredHistoryData.length,
+                itemBuilder: (context, index) {
+                  final data = _filteredHistoryData[index];
+                  return Card(
+                    elevation: 4,
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Name: ${data['name']}',  // Corrected from 'Name' to 'name'
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) {
-                                print("Image loading error: $error");
-                                return const Icon(
-                                  Icons.broken_image,
-                                  size: 100,
-                                  color: Colors.grey,
-                                );
-                              },
+                                ),
+                                Text('Enter At: ${data['enter_at']}'),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                ),
+                          GestureDetector(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) {
+                                  return Dialog(
+                                    child: InteractiveViewer(
+                                      panEnabled: true,
+                                      child: Image.network(
+                                        data['url']!,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return const Icon(
+                                            Icons.broken_image,
+                                            size: 200,
+                                            color: Colors.grey,
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                data['url']!,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(
+                                    Icons.broken_image,
+                                    size: 80,
+                                    color: Colors.grey,
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-            )
-                : const Text(
-              'No history records available.',
-              style: TextStyle(color: Colors.grey),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class FullImagePage extends StatelessWidget {
-  final String imageUrl;
-  final String historyId;
-
-  const FullImagePage({Key? key, required this.imageUrl, required this.historyId}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Full Image - ID: $historyId'),
-      ),
-      body: Center(
-        child: Image.network(
-          imageUrl,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) {
-            print("Full image loading error: $error");
-            return const Icon(Icons.broken_image, size: 100);
-          },
         ),
       ),
     );

@@ -4,12 +4,12 @@ const express = require("express");
 // Controller to create a new member
 const createMember = async (req, res) => {
     const { account_id, name, position_id, address, phone_number, email } = req.body;
-
+ 
     if (!name || !position_id) {
         return res.status(400).json({ success: false, message: 'Name and position_id are required.' });
-    }
+    } 
 
-    try {
+    try { 
         const [result] = await db.promise().query(
             `INSERT INTO tbl_member (account_id, name, position_id, address, phone_number, email) VALUES (?, ?, ?, ?, ?, ?)`,
             [account_id, name, position_id, address, phone_number, email]

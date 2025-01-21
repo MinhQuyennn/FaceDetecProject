@@ -238,7 +238,7 @@ class _viewProfileManagerState extends State<viewProfileManager> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Account Details',
+            Text('Account Information',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
             TextFormField(
@@ -247,7 +247,7 @@ class _viewProfileManagerState extends State<viewProfileManager> {
               obscureText: true,
             ),
             SizedBox(height: 20),
-            Text('Member Details',
+            Text('Member Information',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
             TextFormField(

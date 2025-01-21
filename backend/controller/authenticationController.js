@@ -29,14 +29,14 @@ const login = async (req, res, next) => {
         if (result.length === 0) {
             return res.status(404).json({
                 status: "failed",
-                error: "Account not found",
+                error: "Account not found", 
             });
         }
 
         const tbl_account = result[0];
 
         // Check if user account is enabled
-        if (tbl_account.status !== 'able') {
+        if (tbl_account.status !== 'able') { 
             return res.status(403).json({
                 status: "failed",
                 error: "Account is disabled",

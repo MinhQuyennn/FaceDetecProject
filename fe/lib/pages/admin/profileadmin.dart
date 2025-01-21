@@ -238,7 +238,7 @@ class _viewProfileAdState extends State<viewProfileAd> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Account Details',
+            Text('Account Information',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
             DropdownButtonFormField<String>(
@@ -267,7 +267,7 @@ class _viewProfileAdState extends State<viewProfileAd> {
               obscureText: true,
             ),
             SizedBox(height: 20),
-            Text('Member Details',
+            Text('Member Information',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
             TextFormField(
