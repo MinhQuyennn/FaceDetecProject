@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Import for secure storage
 import 'package:intl/intl.dart';
+import 'dart:async';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class Historystaff extends StatefulWidget {
   const Historystaff({Key? key}) : super(key: key);
@@ -32,8 +34,8 @@ class _HistorystaffScreenState extends State<Historystaff> {
   }
 
   String _getUpdatedImageUrl(String imageUrl) {
-    if (imageUrl.contains('localhost')) {
-      return imageUrl.replaceAll('localhost', '10.0.2.2');
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return imageUrl.replaceAll('http://localhost:8081', '$apiBaseUrl');
     }
     return imageUrl;
   }

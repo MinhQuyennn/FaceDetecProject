@@ -59,7 +59,7 @@ def fetch_embeddings_from_url(url):
     except Exception as e:
         print(f"Error fetching embeddings: {e}")
         return []
-
+ 
 
 def build_annoy_index_from_url(dimension, index_file, url):
     """Build Annoy index using embeddings fetched from URL."""

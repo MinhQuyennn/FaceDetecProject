@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:intl/intl.dart';
+import 'dart:async';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class Profilestaff extends StatefulWidget {
   const Profilestaff({Key? key}) : super(key: key);
@@ -44,7 +46,7 @@ class _ProfilestaffScreenState extends State<Profilestaff> {
 
   String _getUpdatedImageUrl(String imageUrl) {
     if (defaultTargetPlatform == TargetPlatform.android) {
-      return imageUrl.replaceAll('localhost', '10.0.2.2');
+      return imageUrl.replaceAll('http://localhost:8081', '$apiBaseUrl');
     }
     return imageUrl;
   }
