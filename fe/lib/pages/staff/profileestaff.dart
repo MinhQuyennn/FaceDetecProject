@@ -41,6 +41,14 @@ class _ProfilestaffScreenState extends State<Profilestaff> {
   @override
   void initState() {
     super.initState();
+
+    // Initialize controllers to prevent late initialization error
+    _passwordController = TextEditingController();
+    _nameController = TextEditingController();
+    _addressController = TextEditingController();
+    _phoneController = TextEditingController();
+    _emailController = TextEditingController();
+
     _initializeProfile();
   }
 

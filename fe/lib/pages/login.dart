@@ -171,10 +171,10 @@ class _LoginScreenState extends State<Login> {
             ),
             SizedBox(height: size.height * 0.05),
             Container(
-              alignment: Alignment.centerRight,
+              alignment: Alignment.centerLeft,
               margin: const EdgeInsets.symmetric(horizontal: 40),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   Checkbox(
                     value: _rememberMe,
@@ -193,7 +193,7 @@ class _LoginScreenState extends State<Login> {
             ),
             SizedBox(height: size.height * 0.03),
             Container(
-              alignment: Alignment.centerRight,
+              alignment: Alignment.centerLeft,
               margin: const EdgeInsets.symmetric(horizontal: 40),
               child: _isLoading
                   ? const CircularProgressIndicator()
@@ -203,6 +203,7 @@ class _LoginScreenState extends State<Login> {
                   backgroundColor: Colors.blue, // Blue button color
                   padding: const EdgeInsets.symmetric(
                       horizontal: 40, vertical: 15),
+                      minimumSize: Size(double.infinity, 50),
                 ),
                 child: const Text(
                   "LOGIN",

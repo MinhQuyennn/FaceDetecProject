@@ -38,6 +38,14 @@ class _viewProfileAdState extends State<viewProfileAd> {
   @override
   void initState() {
     super.initState();
+
+    // Initialize controllers to prevent late initialization error
+    _passwordController = TextEditingController();
+    _nameController = TextEditingController();
+    _addressController = TextEditingController();
+    _phoneController = TextEditingController();
+    _emailController = TextEditingController();
+
     _initializeProfile();
   }
 

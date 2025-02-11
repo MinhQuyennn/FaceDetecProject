@@ -92,20 +92,19 @@ class _ManageAccAdminState extends State<ManageAccAdmin> {
   }
 
   Widget _buildFaceStatusBadge(bool isRegistered) {
-    if (isRegistered) return SizedBox.shrink();
-
     return Positioned(
       top: 5,
       right: 5,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: EdgeInsets.all(5),
         decoration: BoxDecoration(
-          color: Colors.red,
+          color: isRegistered ? Colors.green : Colors.red, // Xanh lá cho đã đăng ký, đỏ cho chưa đăng ký
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(
-          'Account not registered face',
-          style: TextStyle(color: Colors.white, fontSize: 10),
+        child: Icon(
+          Icons.face, // Biểu tượng khuôn mặt
+          color: Colors.white,
+          size: 16,
         ),
       ),
     );
@@ -139,7 +138,7 @@ class _ManageAccAdminState extends State<ManageAccAdmin> {
                       ),
                     );
                   },
-                  child:Icon(Icons.person_add),
+                  child: Icon(Icons.person_add),
                 ),
               ],
             ),

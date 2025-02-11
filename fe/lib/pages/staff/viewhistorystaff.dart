@@ -171,7 +171,7 @@ class _HistorystaffScreenState extends State<Historystaff> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Histories'),
+        title: const Text('History'),
         centerTitle: true,
       ),
       body: Padding(
