@@ -69,7 +69,7 @@ const detectFaceAndProcess = (base64Image) => {
           reject("An unexpected error occurred.");
       }
   });
-};  
+};   
 
 
 const createRegisterFace = async (req, res) => {

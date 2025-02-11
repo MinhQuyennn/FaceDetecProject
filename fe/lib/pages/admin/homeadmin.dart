@@ -96,6 +96,8 @@ class _HomepageAdState extends State<HomepageAd> {
   Future<void> _fetchUserDetails() async {
     try {
       final username = await _storage.read(key: "KEY_USERNAME") ?? '';
+      print('Username retrieved: $username');
+
       if (username.isEmpty) return;
 
       setState(() => _username = username);
@@ -105,6 +107,7 @@ class _HomepageAdState extends State<HomepageAd> {
         final data = json.decode(response.body);
         setState(() {
           _memberName = data['accountInfo']['member_name'] ?? 'Admin';
+          print(_memberName);
         });
       } else {
         debugPrint('Failed to fetch user details: ${response.body}');
@@ -238,7 +241,7 @@ class _HomepageAdState extends State<HomepageAd> {
               child: FadeInUp(
                 duration: const Duration(milliseconds: 1200),
                 child: const Text(
-                  'Your Dashboard',
+                  'Dashboard',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
@@ -284,7 +287,7 @@ class _HomepageAdState extends State<HomepageAd> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  flex: 4,
+                  flex: 3,
                   child: FadeInUp(
                     duration: const Duration(milliseconds: 1200),
                     child: Text(
@@ -312,125 +315,99 @@ class _HomepageAdState extends State<HomepageAd> {
     );
   }
 
+
+
   Widget _buildStatsCards() {
-    return Container(
-      height: 255,
-      width: double.infinity,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 20, left: 20),
-        scrollDirection: Axis.horizontal,
-        children: [
-          _buildCard(
-        startColor: const Color.fromRGBO(251, 121, 155, 1),
-    endColor: const Color.fromRGBO(251, 53, 105, 1),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildRichText('$_totalAccounts\n', 'total accounts'),
-              const SizedBox(height: 8),
-              _buildRichText('$_enabledAccounts\n', 'accounts enabled'),
-              const SizedBox(height: 8),
-              _buildRichText('$_registeredFaceAccounts\n', 'accounts registered face'),
-            ],
-          ),
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: SizedBox(
+        height: 200,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: [
+            SizedBox(width: 15),
+            _buildCard("Account", "Total: $_totalAccounts\nEnable: $_enabledAccounts\nRegistered: $_registeredFaceAccounts", Colors.blueAccent),
+            SizedBox(width: 15),
+            _buildCard("Entrance", "Total: $_totalEntries\nAnonymous: $_totalImporters", Colors.greenAccent),
+            SizedBox(width: 15),
+            _buildCard("Lastest Entrance", "$_lastAccountId\nLast detected: $_lastEnterAt", Colors.orangeAccent),
+            SizedBox(width: 15),
+          ],
         ),
-          _buildCard(
-            startColor: const Color.fromRGBO(136, 176, 250, 1.0),
-            endColor: const Color.fromRGBO(30, 91, 250, 1.0),
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Today',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 8), // Add spacing
-                _buildRichText('$_totalEntries\n', 'members access'),
-                const SizedBox(height: 8), // Add spacing
-                _buildRichText('$_totalImporters\n', 'importers'),
-              ],
-            ),
-          ),
-
-          _buildCard(
-            startColor: const Color.fromRGBO(255, 204, 128, 1.0),
-            endColor: const Color.fromRGBO(255, 152, 0, 1.0),
-            title: _buildRichText(
-              '$_lastAccountId\n',
-              'Last detected: $_lastEnterAt',
-            ),
-          ),
-        ],
-        ),
-    );
-  }
-
-  Widget _buildRichText(String accountId, String lastDetected) {
-    final label = lastDetected; // Directly use the lastDetected string as the label
-
-    return RichText(
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: accountId,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          TextSpan(
-            text: ' $label',  // Just display the label without colon
-            style: const TextStyle(
-              fontSize: 15,
-              color: Colors.white,
-            ),
-          ),
-        ],
       ),
     );
   }
 
-  Widget _buildCard({
-    required Color startColor,
-    required Color endColor,
-    required Widget title,
-  }) {
-    return GestureDetector(
-      child: AspectRatio(
-        aspectRatio: 4 / 5,
-        child: Container(
-          margin: const EdgeInsets.only(right: 20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(13.0),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              colors: [startColor, endColor],
+  Widget _buildCard(String title, String content, Color color) {
+    return Container(
+      width: 220,
+      height: 100,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 210,
+            height: 140,
+            padding: EdgeInsets.all(16),
+            margin: EdgeInsets.only(top: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8,
+                  spreadRadius: 2,
+                  offset: Offset(0, 4),
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.shade300,
-                blurRadius: 10,
-                offset: const Offset(5, 10),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [title],
+              children: [
+                Text(
+                  content,
+                  textAlign: TextAlign.left,
+                  style: TextStyle(fontSize: 18, color: Colors.black87),
+                ),
+              ],
             ),
           ),
-        ),
+          Positioned(
+            top: 0,
+            left: 16,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.6),
+                    blurRadius: 6,
+                    spreadRadius: 1,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
+
+
+
   Widget _buildFilterDropdown() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
@@ -438,7 +415,7 @@ class _HomepageAdState extends State<HomepageAd> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            "Select Data Range:",
+            "Entrance statistics",
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700]),
           ),
           DropdownButton<int>(

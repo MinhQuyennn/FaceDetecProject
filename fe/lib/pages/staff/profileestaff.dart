@@ -276,20 +276,30 @@ class _ProfilestaffScreenState extends State<Profilestaff> {
             SizedBox(height: 20),
             ElevatedButton(onPressed: _updateDetails, child: Text('Update')),
             SizedBox(height: 20),
-            Text('Image Details',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            SizedBox(height: 10),
             if (_faceImageData.isNotEmpty)
-              ..._faceImageData.map((image) => Image.network(
-                image['url']!,
-                height: 100,
-                width: 100,
-                fit: BoxFit.cover,
-              )),
-            if (_faceImageData.isEmpty)
-              Text(
-                'You don’t have an image.',
-                style: TextStyle(color: Colors.red, fontSize: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Image Details',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _faceImageData.map((image) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                        child: Image.network(
+                          image['url']!,
+                          height: 100,
+                          width: 100,
+                          fit: BoxFit.cover,
+                        ),
+                      )).toList(),
+                    ),
+                  ),
+                ],
               ),
           ],
         ),

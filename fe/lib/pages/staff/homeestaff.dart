@@ -155,7 +155,7 @@ class _HomepagestaffScreenState extends State<Homepagestaff> {
               child: FadeInUp(
                 duration: const Duration(milliseconds: 1200),
                 child: const Text(
-                  'Your Dashboard',
+                  'Dashboard',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
@@ -228,114 +228,96 @@ class _HomepagestaffScreenState extends State<Homepagestaff> {
   }
 
   Widget _buildStatsCards() {
-    return Container(
-      height: 220,
-      width: double.infinity,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 20, left: 20),
-        scrollDirection: Axis.horizontal,
-        children: [
-          _buildCard(
-            startColor: const Color.fromRGBO(255, 0, 59, 1.0),
-            endColor: const Color.fromRGBO(235, 135, 135, 1.0),
-            title: Text(
-              _lastAccountId,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          _buildCard(
-            startColor: const Color.fromRGBO(30, 91, 250, 1.0),
-            endColor: const Color.fromRGBO(136, 176, 250, 1.0),
-            title: Text(
-              _mostRecentTime,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: SizedBox(
+        height: 200,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: [
+            SizedBox(width: 15),
+            _buildCard("Status", _lastAccountId, Colors.blueAccent),
+            SizedBox(width: 15),
+            _buildCard("Lastest Entrance", _mostRecentTime, Colors.greenAccent),
+            SizedBox(width: 15),
 
-
-  Widget _buildRichText(String accountId, String lastDetected) {
-    final parts = lastDetected.split(': '); // Split the string to separate label and date
-    final label = parts.first; // 'Last detected'
-    final date = parts.length > 1 ? parts.last : ''; // 'dd/MM/yy HH:mm:ss'
-
-    return RichText(
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: accountId,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          TextSpan(
-            text: '$label: ',
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.white,
-            ),
-          ),
-          TextSpan(
-            text: date,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold, // Bold style for the date
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCard({
-    required Color startColor,
-    required Color endColor,
-    required Widget title,
-  }) {
-    return GestureDetector(
-      child: AspectRatio(
-        aspectRatio: 4 / 5,
-        child: Container(
-          margin: const EdgeInsets.only(right: 20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(13.0),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              colors: [startColor, endColor],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.shade300,
-                blurRadius: 10,
-                offset: const Offset(5, 10),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [title],
-            ),
-          ),
+          ],
         ),
       ),
     );
   }
+
+  Widget _buildCard(String title, String content, Color color) {
+    return Container(
+      width: 220,
+      height: 100,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 200,
+            height: 140,
+            padding: EdgeInsets.all(16),
+            margin: EdgeInsets.only(top: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8,
+                  spreadRadius: 2,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  content,
+                  textAlign: TextAlign.left,
+                  style: TextStyle(fontSize: 18, color: Colors.black87),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: 16,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.6),
+                    blurRadius: 6,
+                    spreadRadius: 1,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+
+
 }
 
